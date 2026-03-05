@@ -1,4 +1,5 @@
 # **Game Name Here**
+Arcane Assembley
 
 ## _Game Design Document_
 
@@ -70,11 +71,13 @@ Arcane Assembly es un juego para que los jugadores puedan experimentar una ciert
     2. Assessment / Next Level
 4. End Credits
 
+
 _(example)_
 
 ### **Controls**
 
 How will the player interact with the game? Will they be able to choose the controls? What kind of in-game events are they going to be able to trigger, and how? (e.g. pressing buttons, opening doors, etc.)
+
 
 ### **Mechanics**
 
@@ -133,39 +136,61 @@ _(example)_
 
 ### **Abstract Classes / Components**
 
-1. BasePhysics
-    1. BasePlayer
-    2. BaseEnemy
-    3. BaseObject
-2. BaseObstacle
-3. BaseInteractable
+1. PiezaBase
+    1. BaseGenerador
+    2. BaseTransformador
+    3. BaseCatalizador
+    4. BaseAncla
+2. TableroBase
+3. CombateBase
+4. NodoBase
 
 _(example)_
+Clase: PiezaBase
+Propiedades:
+  tipo
+  rareza
+  posicionHex
+  tamaño
+
+Métodos:
+  activar()
+  calcularEfecto()
+  obtenerVecinos()
 
 ### **Derived Classes / Component Compositions**
 
-1. BasePlayer
-    1. PlayerMain
-    2. PlayerUnlockable
-2. BaseEnemy
-    1. EnemyWolf
-    2. EnemyGoblin
-    3. EnemyGuard (may drop key)
-    4. EnemyGiantRat
-    5. EnemyPrisoner
-3. BaseObject
-    1. ObjectRock (pick-up-able, throwable)
-    2. ObjectChest (pick-up-able, throwable, spits gold coins with key)
-    3. ObjectGoldCoin (cha-ching!)
-    4. ObjectKey (pick-up-able, throwable)
-4. BaseObstacle
-    1. ObstacleWindow (destroyed with rock)
-    2. ObstacleWall
-    3. ObstacleGate (watches to see if certain buttons are pressed)
-5. BaseInteractable
-    1. InteractableButton
+1. BaseGenerador
+    1. GeneradorEnergia
+    2. GeneradorCalor
+    3. GenradorPresion
+    4. GeneradorCorriente
+2. BaseTransformador
+    1. TransformadorDaño
+    2. TransformadorEscudo
+    3. TransformadorEstado
+3. BaseCatalizador
+    1. CatalizadorAmplificador
+4. BaseAncla
+    1. AnclaReduceDaño
+    2. AnclaReflejaDaño
+    3. AnclaRegeneraRecursos
+5. BaseNodo
+    1. NodoCombate
+    2. NodoElite
+    3. NodoTienda
+    4. NodoEvento
+    5. NodoJefe
 
 _(example)_
+Clase: GeneradorCalor
+Hereda de: BaseGenerador
+
+Recurso generado: Calor
+Output: 2 por turno
+
+Método:
+  generarRecurso()
 
 ## _Graphics_
 
@@ -175,42 +200,65 @@ _(example)_
 
 What kinds of colors will you be using? Do you have a limited palette to work with? A post-processed HSV map/image? Consistency is key for immersion.
 
+Para el juego Arcane Assambley se usara una paleta limitada de colores brillantes y contrastantes para representar los distintos tipos de piezas. Cada pieza tendra un color distinto, Generador:Azul, Transformador: Naranja, Catalizador: Verde, y Ancla: Morado.
+Ejemplos:
+
+![Pieza Transformador](/VIDEOJUEGO_RETO/pieza_transformador.png)
+
+
 What kind of graphic style are you going for? Cartoony? Pixel-y? Cute? How, specifically? Solid, thick outlines with flat hues? Non-black outlines with limited tints/shades? Emphasize smooth curvatures over sharp angles? Describe a set of general rules depicting your style here.
+
+Basicamente el estilo visual será geométrico y minimalista, donde contara con características principales tales como: un tablero hexagonal flotante, formas geometricas, lineas de energia que conectan piezas cuando exista una sinergia, efectos visuales cuando las piezas son activadas, colores brillantes(piezas) sobre un fondo no tan oscuro(tablero), donde el estilo del juego busca ser claro y legible, de tal manera que el jugador entienda rapidamente las interacciones entre piezas
 
 Well-designed feedback, both good (e.g. leveling up) and bad (e.g. being hit), are great for teaching the player how to play through trial and error, instead of scripting a lengthy tutorial. What kind of visual feedback are you going to use to let the player know they&#39;re interacting with something? That they \*can\* interact with something?
 
+En arcane Assambley utlizara varios tipos de feedback visuales para indicar acciones e interacciones tales como: coexiones luminosas entre piezas cuando exista una sinergia, un pulso de luz confirmando que tu pieza se activa, un brillo o tal vez un resplandor que indique que tu pieza puede colocarse en una pocision valida, todas estas represntaciones visuales ayudaran al jugador a entender como funciona el juego sin necesidad de explicaciones largas.  
+
 ### **Graphics Needed**
 
-1. Characters
-    1. Human-like
-        1. Goblin (idle, walking, throwing)
-        2. Guard (idle, walking, stabbing)
-        3. Prisoner (walking, running)
-    2. Other
-        1. Wolf (idle, walking, running)
-        2. Giant Rat (idle, scurrying)
-2. Blocks
-    1. Dirt
-    2. Dirt/Grass
-    3. Stone Block
-    4. Stone Bricks
-    5. Tiled Floor
-    6. Weathered Stone Block
-    7. Weathered Stone Bricks
-3. Ambient
-    1. Tall Grass
-    2. Rodent (idle, scurrying)
-    3. Torch
-    4. Armored Suit
-    5. Chains (matching Weathered Stone Bricks)
-    6. Blood stains (matching Weathered Stone Bricks)
-4. Other
-    1. Chest
-    2. Door (matching Stone Bricks)
-    3. Gate
-    4. Button (matching Weathered Stone Bricks)
+1. Tablero 
+        1. Tablero Hexagonal(grid de 5x5)
+        2. Casillas Hexagonales individuales
+        3. Tablero hexagonal del enemigo
+    
+2. Piezas
+    1. Generadores
+        1. Generador de energía
+        2. Generador de calor
+        3. Generador de Presión
+        4. Generador de Corriente
+    2. Transformadores
+        1. Transformador de daño
+        2. Transformador de escudo
+        3. Transformador de estado
+    3. Catlizadores
+        1. Catalizador Amplificador
+    4. Anclas
+        1. Ancla de escudo
+        2. Ancla de reflejo de daño
+        3. Ancla de regeneración de recursos
+    
+3. Efectos visuales
+    1. Lineas de energia entre piezas
+    2. Efectos de daño
+    3. Efectos de escudo
+    4. Animación de activación de piezas
+    5. Brillo o resplandor cuando una pieza se activa
+ 
+4. Interfaz de usuario
+    1. Iconos de piezas
+    2. Indicadores de recursos
+    3. Resaltado de casillas donde se pueden colocar piezas
+    4. Indicadores de turno o resolución de combate
+    5. Indicadores de daño
 
 _(example)_
+Pieza: GeneradorCalor
+Tipo: Generador
+Color: Azul
+Recurso: Calor
+Output: 2 por turno
+Tamaño: 1 hex
 
 
 ## _Sounds/Music_
@@ -221,38 +269,50 @@ _(example)_
 
 Again, consistency is key. Define that consistency here. What kind of instruments do you want to use in your music? Any particular tempo, key? Influences, genre? Mood?
 
+La música debe crear una atmósfera etrategíca y sobretodo calmada, para asi el juegador pueda pensar y planificar su tablero. Para lograr esta sensación de calma, se propone un estilo ambiente electronico con sintetizadores y pads sauves, con tempo moderado y que mantenga ligera tension urante el combate, etsa mimsa inspiración puede venir e musica sci-fi, como por ejemplo Space Cruise-Ben Prunty, MilkyWay-Ben Prunty, https://www.youtube.com/watch?v=NC4uZoDg_9k.
+
 Stylistically, what kind of sound effects are you looking for? Do you want to exaggerate actions with lengthy, cartoony sounds (e.g. mario&#39;s jump), or use just enough to let the player know something happened (e.g. mega man&#39;s landing)? Going for realism? You can use the music style as a bit of a reference too.
+
+Los efectos de sonido deben ser breves y claros, con una estética tecnológica y energética. Se usarán sonidos digitales suaves para indicar colocación de piezas, generación de recursos, activación de habilidades y daño. El objetivo es comunicar las acciones del sistema sin distraer al jugador mientras planifica su tablero. 
 
  Remember, auditory feedback should stand out from the music and other sound effects so the player hears it well. Volume, panning, and frequency/pitch are all important aspects to consider in both music _and_ sounds - so plan accordingly!
 
 ### **Sounds Needed**
 
 1. Effects
-    1. Soft Footsteps (dirt floor)
-    2. Sharper Footsteps (stone floor)
-    3. Soft Landing (low vertical velocity)
-    4. Hard Landing (high vertical velocity)
-    5. Glass Breaking
-    6. Chest Opening
-    7. Door Opening
+    1. Colocación de piezas (cuando el jugador coloca una pieza en el tablero)
+    2. Activación de piezas (cuando una pieza e activa durante la ronda)
+    3. Pulso de generación de recurso (cuando un generador produce recurso)
+    4. Impacto de energía (cuando se inflige daño a un enemigo)
+    5. Amplificación de catalizador (cuando un catalizador aumenta el efecto de piezas vecinas)
+    6. Activación de Ancla (cuando una ancla altera el área: reducir daño, reflejar daño, regenerar recursos o proteger piezas)
+    7. Reconfiguración del tablero (cuando el jugador reorganiza piezas)
 2. Feedback
-    1. Relieved &quot;Ahhhh!&quot; (health)
-    2. Shocked &quot;Ooomph!&quot; (attacked)
-    3. Happy chime (extra life)
-    4. Sad chime (died)
+    1. Sonido de recurso obtenido (cuando el jugador gana recursos)
+    2. Pulso de daño recibido (cuando el jugador recibe daño)
+    3. Sonido de victoria (al ganar un combate)
+    4. Sonido de derrota (cuando el jugador pierde la run)
 
 _(example)_
-
+Sound: EnergyImpact
+Trigger: Cuando el tablero enemigo recibe daño
+Duración: 0.7s
+Tipo: Impacto energético
+Volumen: Alto
 ### **Music Needed**
 
-1. Slow-paced, nerve-racking &quot;forest&quot; track
-2. Exciting &quot;castle&quot; track
-3. Creepy, slow &quot;dungeon&quot; track
-4. Happy ending credits track
-5. Rick Astley&#39;s hit #1 single &quot;Never Gonna Give You Up&quot;
+1. Tema de planificación del tablero (Música ambiental calmada mientras el jugador coloca y organiza las piezas.)
+2. Tema de combate automático (Música electrónica con ligera tensión mientras el sistema ejecuta las rondas.)
+3. Tema de mapa / exploración de nodos (Música ambiental suave que acompaña la toma de decisiones entre combates.)
+4. Tema de jefe (Música más intensa que aumenta la tensión durante el combate final de la run.)
+5. Tema de créditos finales (Música calmada y satisfactoria que cierre la experiencia del juego.)
 
 _(example)_
-
+Track: BossBattleTheme
+Situación: Combate contra el jefe final
+Estilo: Electrónica intensa
+Intensidad: Alta
+Loop: Sí
 
 ## _Schedule_
 
@@ -260,32 +320,62 @@ _(example)_
 
 _(define the main activities and the expected dates when they should be finished. This is only a reference, and can change as the project is developed)_
 
-1. develop base classes
-    1. base entity
-        1. base player
-        2. base enemy
-        3. base block
-  2. base app state
-        1. game world
-        2. menu world
-2. develop player and basic block classes
-    1. physics / collisions
-3. find some smooth controls/physics
-4. develop other derived classes
-    1. blocks
-        1. moving
-        2. falling
-        3. breaking
-        4. cloud
-    2. enemies
-        1. soldier
-        2. rat
-        3. etc.
-5. design levels
-    1. introduce motion/jumping
-    2. introduce throwing
-    3. mind the pacing, let the player play between lessons
-6. design sounds
-7. design music
+1. Desarrollo de clases base - Semana 5
+    1. Piezabase 
+        1. BaseGenerador
+        2. BaseTransformador
+        3. BaseCatalizador
+        4. BaseAncla
+    2. TableroBase
+    2. TableroBase
+    3. CombateBase
+    4. NodoBase
+2. Desarrollo del sistema del tablero - Semana 5
+    1. Grid Hexagonal(5 x 5)
+    2. Sistema para colocar y remover piezas 
+    3. Sistema de detección de vecinos
+3. Implementación del sistema de combate — Semana 6
+    1. Orden de resolucion de piezas
+        1. Genradores
+        2. Transformadores
+        3. Catalizadores
+        4. Anclas
+    2. Sistema de calculo de daño
+4. Desarrollo de clases derivadas — Semana 6-7
+    1. BaseGenerador
+        1. GeneradorEnergia
+        2. GeneradorCalor
+        3. GenradorPresion
+        4. GeneradorCorriente
+    2. BaseTransformador
+        1. TransformadorDaño
+        2. TransformadorEscudo
+        3. TransformadorEstado
+    3. BaseCatalizador
+        1. CatalizadorAmplificador
+    4. BaseAncla
+        1. AnclaReduceDaño
+        2. AnclaReflejaDaño
+        3. AnclaRegeneraRecursos
+5. Desarrollo del sistema de mapa — Semana 7
+    1. Generación nodos del mapa
+    2. Implementacion de nodos
+        1. NodoCombate
+        2. NodoElite
+        3. NodoTienda
+        4. NodoEvento
+        5. NodoJefe
+    3. Implementacion de niveles
+6. Diseño visual y efectos — Semana 8
+    1. Diseño del tablero
+    2. Diseño de piezas 
+    3. Implementación de efectos visuales
+7. Diseño de audio — Semana 8
+    1. Diseño de efectos de sonido
+    2. Diseño de música ambiental
+    3. Integración del audio en el juego
 
 _(example)_
+Actividad: Sistema de tablero
+Tareas: Grid hexagonal, colocación de piezas, detección de vecinos
+Fecha estimada: Semana 5
