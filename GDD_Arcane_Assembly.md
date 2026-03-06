@@ -64,15 +64,27 @@ Arcane Assembly es un juego para que los jugadores puedan experimentar una ciert
 ### **Screens**
 
 1. Title Screen
-    1. Options
+    1. Menu principal
+    2. Iniciar Juego: Seleccion de nivel
+    3. Opciones
+    4. Salir del juego
 2. Level Select
+    1. Muestra los niveles o nodos disponibles
+    2. Cada nodo puede representar: combate, evento o tienda
+    3. Seleccionar un nodo
+    4. Regresar al menu principales
 3. Game
-    1. Inventory
+    1. Gameplay: mover piezas
+    2. Inventario
+        1. Piezas
     2. Assessment / Next Level
+        1.Resumen de recursos obtenidos o puntos de victoria
+        2. Opcion de continuar al siguiente nodo
 4. End Credits
 
 
 _(example)_
+Menu:![alt ancla](<screen.png>)
 
 ### **Controls**
 
