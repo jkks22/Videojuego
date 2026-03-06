@@ -203,8 +203,10 @@ What kinds of colors will you be using? Do you have a limited palette to work wi
 Para el juego Arcane Assambley se usara una paleta limitada de colores brillantes y contrastantes para representar los distintos tipos de piezas. Cada pieza tendra un color distinto, Generador:Azul, Transformador: Naranja, Catalizador: Verde, y Ancla: Morado.
 Ejemplos:
 
-![Pieza Transformador](/VIDEOJUEGO_RETO/pieza_transformador.png)
-
+ancla:![alt ancla](<ancla.png>)
+catalizador:![alt ancla](<Catalizador.png>)
+generador:![alt ancla](<generaodr.png>)
+transformador:![alt ancla](<transformador.png>)
 
 What kind of graphic style are you going for? Cartoony? Pixel-y? Cute? How, specifically? Solid, thick outlines with flat hues? Non-black outlines with limited tints/shades? Emphasize smooth curvatures over sharp angles? Describe a set of general rules depicting your style here.
 
