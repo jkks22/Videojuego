@@ -88,18 +88,88 @@ Menu:![alt ancla](<screen.png>)
 
 ### **Controls**
 
-How will the player interact with the game? Will they be able to choose the controls? What kind of in-game events are they going to be able to trigger, and how? (e.g. pressing buttons, opening doors, etc.)
+El jugador interactúa exclusivamente con el mouse/trackpad. No se requieren controles de teclado ni reflejos rápidos, ya que el juego se basa en planificación. Los controles son:
 
+1. Click izquierdo
+
+    1. Seleccionar una pieza del inventario
+    2. Confirmar la colocación de una pieza en el tablero
+    3. Seleccionar un nodo en el mapa
+
+2. Click derecho
+
+    1. Deseleccionar una pieza activa
+    2. Remover una pieza ya colocada en el tablero
+
+3. Hover (pasar el cursor)
+
+    1. Resaltar casillas válidas donde se puede colocar la pieza seleccionada
+    2. Mostrar información de una pieza o nodo
+
+4. Drag & Drop
+
+    1. Arrastrar una pieza del inventario a una casilla del tablero
+    2. Reorganizar piezas ya colocadas antes de confirmar
+
+5. Botón "Confirmar tablero"
+
+    1. Bloquea el tablero e inicia la resolución automática del combate
+
+6. Botón "Impulso"
+
+    1. Activa una pieza fuera del orden de resolución (una vez por combate)
+
+_example_
+Control: Click izquierdo sobre casilla hexagonal
+Evento: Colocar pieza seleccionada en esa posición
+Feedback visual: La casilla se ilumina con el color de la pieza y aparece la conexión con vecinos adyacentes
 
 ### **Mechanics**
 
-Are there any interesting mechanics? If so, how are you going to accomplish them? Physics, algorithms, etc.
+1. Sistema de tablero hexagonal
+
+    1. Grid de 5×5 casillas hexagonales
+    2. Cada pieza ocupa entre 1 y 3 hexágonos
+    3. La posición relativa entre piezas define qué sinergias se activan
+
+2. Detección de vecinos
+
+    1. Cada pieza calcula sus 6 casillas adyacentes al ser colocada
+    2. Si una pieza vecina es compatible, la sinergia se activa automáticamente
+Ejemplo: Generador adyacente a Transformador → el Transformador recibe recurso
+
+3. Orden de resolución automática por ronda
+
+    1. Generadores producen recurso (energía, calor, presión o corriente)
+    2. Transformadores consumen recurso adyacente y generan daño o escudo
+    3. Catalizadores amplifican el output de sus vecinos activos (+25% a +80%)
+    4. Anclas aplican sus efectos de campo pasivos al área circundante
+    5. Se calcula el daño neto y se aplica al tablero rival
+
+4. Sistema de Impulso
+
+    1. Recurso escaso que permite activar una pieza fuera del orden de resolución
+    2. Solo puede usarse una vez por combate
+    3. Se recupera parcialmente entre nodos del mapa
+
+5. Draft de recompensas
+
+    1. Al ganar un combate, el jugador elige entre 3 piezas aleatorias
+    2. Las piezas elegidas se añaden a la colección del jugador para esa run
+
+6. Escalado roguelite (Fractura)
+
+    1. Cada run completada sube el nivel de dificultad
+    2. Los enemigos tienen tableros con sinergias más complejas
+
+_example_
+Mecánica: Detección de vecinos
+Algoritmo: Al colocar una pieza en posición (q, r), se calculan las 6 direcciones hexagonales adyacentes. Si existe una pieza en alguna de esas posiciones y los tipos son compatibles, se registra la sinergia en el estado del tablero.
+Resultado: El Transformador en (q+1, r) recibe el recurso del Generador en (q, r) y lo convierte en daño al inicio de la fase 2
 
 ## _Level Design_
 
----
-
-_(Note : These sections can safely be skipped if they&#39;re not relevant, or you&#39;d rather go about it another way. For most games, at least one of them should be useful. But I&#39;ll understand if you don&#39;t want to use them. It&#39;ll only hurt my feelings a little bit.)_
+El diseño de niveles en Arcane Assembly se basa en el mapa de nodos. Cada run genera una red de nodos aleatoria que el jugador recorre eligiendo su camino. Los nodos pueden ser combates normales, élites, tiendas o eventos. La dificultad escala conforme el jugador avanza hacia el jefe final, que tiene una configuración de tablero única y predefinida.
 
 ### **Themes**
 
@@ -393,3 +463,4 @@ _(example)_
 Actividad: Sistema de tablero
 Tareas: Grid hexagonal, colocación de piezas, detección de vecinos
 Fecha estimada: Semana 5
+
