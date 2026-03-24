@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arcane Assembly</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!--pantallas del juego, solo una activa a la vez-->
+
+  <!--pantalla de titulo-->
+  <div id="screen-title" class="screen active">
+    <div class="title-bg">
+      <div id="hexBg" class="hex-grid-bg"></div>
+    </div>
+    <div class="title-content">
+      <div class="title-badge">TC2005B · EQUIPO 4</div>
+      <h1 class="game-title">ARCANE<br><span>ASSEMBLY</span></h1>
+      <p class="game-subtitle">Roguelite · Construcción de Tablero Táctico</p>
+      <button class="btn-primary pulse" onclick="Game.startRun()">⚡ INICIAR RUN</button>
+    </div>
+  </div>
+
+  <!--pantalla del mapa-->
+  <div id="screen-map" class="screen">
+    <div class="top-bar">
+      <div class="run-chip">
+        <span class="run-lbl">RUN</span>
+        <span id="run-num" class="run-val">1</span>
+      </div>
+      <h2 class="top-title">MAPA DEL PLIEGUE</h2>
+      <div class="hud-row">
+        <div class="hud-item">
+          <span class="hud-lbl">HP</span>
+          <div class="hud-bar">
+            <div id="hp-bar" class="hud-fill hp-fill" style="width:100%"></div>
+          </div>
+          <span id="hp-val" class="hud-val">100/100</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-lbl">IMPULSO</span>
+          <div id="impulse-dots" class="impulse-dots"></div>
+        </div>
+        <div class="hud-item">
+          <span class="hud-lbl">PIEZAS</span>
+          <span id="piece-count" class="hud-val">4</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-lbl">ZONA</span>
+          <span id="zone-val" class="hud-val zone-chip">1</span>
+        </div>
+      </div>
+    </div>
+    <div id="map-container" class="map-wrap"></div>
+  </div>
+
+  <!--pantalla de combate-->
+  <div id="screen-battle" class="screen">
+
+    <!--hud de arriba-->
+    <div class="top-bar battle-bar">
+      <div class="battle-left">
+        <span id="node-badge" class="node-badge">COMBATE</span>
+        <span id="enemy-name" class="enemy-name-hud">Guardián Arcano</span>
+      </div>
+      <div class="battle-hud">
+        <span class="hud-lbl">HP</span>
+        <div class="hud-bar">
+          <div id="b-hp-bar" class="hud-fill hp-fill" style="width:100%"></div>
+        </div>
+        <span id="b-hp-val" class="hud-val">100/100</span>
+        <div id="b-impulse" class="impulse-dots small"></div>
+      </div>
+    </div>
+
+    <!--sprites de los personajes-->
+    <div class="sprite-stage">
+      <div class="sprite-slot player-slot">
+        <span class="sprite-name player-name">INGENIERO ARCANO</span>
+        <canvas id="sprite-player" width="120" height="120" class="sprite-canvas flip"></canvas>
+        <div class="sprite-hp-bar-wrap">
+          <div id="sprite-player-hp" class="sprite-hp-fill player-hp"></div>
+        </div>
+      </div>
+
+      <span class="sprite-vs">VS</span>
+
+      <div class="sprite-slot enemy-slot">
+        <span id="sprite-enemy-name" class="sprite-name enemy-name-lbl">Bruja Errante</span>
+        <canvas id="sprite-enemy" width="120" height="120" class="sprite-canvas"></canvas>
+        <div class="sprite-hp-bar-wrap">
+          <div id="sprite-enemy-hp" class="sprite-hp-fill enemy-hp"></div>
+        </div>
+      </div>
+    </div>
+
+    <!--arena de combate-->
+    <div class="arena">
+
+      <!--tablero del jugador-->
+      <div class="board-col">
+        <div class="board-lbl player-lbl">⚒ TU TABLERO</div>
+        <div class="canvas-wrap">
+          <canvas id="playerBoard" width="340" height="340"></canvas>
+        </div>
+        <div class="board-stats">
+          <span id="p-dmg" class="bstat dmg">DMG: 0</span>
+          <span id="p-shld" class="bstat shld">ESC: 0</span>
+          <span id="p-syn" class="bstat syn hidden">✦ SINERGIA</span>
+        </div>
+      </div>
+
+      <!--log y controles del centro-->
+      <div class="arena-center">
+        <div id="battle-log" class="battle-log">
+          <div class="log-hdr">— REGISTRO —</div>
+          <div id="log-entries"></div>
+        </div>
+        <div id="phase-indicator" class="phase-indicator hidden"></div>
+        <div id="round-badge" class="round-badge hidden">
+          RONDA <span id="round-num">1</span>
+        </div>
+        <button id="btn-impulse" class="btn-impulse" onclick="BattleUI.useImpulse()">
+          ⚡ IMPULSO <span id="impulse-cost">(3 restantes)</span>
+        </button>
+      </div>
+
+      <!--tablero del enemigo-->
+      <div class="board-col">
+        <div class="board-lbl enemy-lbl">☠ ENEMIGO</div>
+        <div class="canvas-wrap">
+          <canvas id="enemyBoard" width="340" height="340"></canvas>
+        </div>
+        <div class="board-stats">
+          <span id="e-hp" class="bstat e-hp">HP: --</span>
+          <div class="enemy-hp-bar-wrap">
+            <div id="e-hp-bar" class="enemy-hp-bar"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!--inventario-->
+    <div id="inv-panel" class="inv-panel">
+      <div class="inv-hdr">
+        <div>
+          <span id="build-lbl" class="inv-title">Ronda 1 — Coloca tus 5 piezas</span>
+          <span id="pieces-left" class="pieces-counter">5 restantes</span>
+        </div>
+        <div class="inv-actions">
+          <span class="inv-hint">Clic en pieza → clic en tablero</span>
+          <button class="btn-ghost sm" onclick="BattleUI.clearBoard()">✕ Limpiar</button>
+        </div>
+      </div>
+      <div id="piece-grid" class="piece-grid"></div>
+    </div>
+
+  </div>
+
+  <!-- pantalla de draft / recompensa -->
+  <div id="screen-draft" class="screen">
+    <div class="draft-wrap">
+      <div class="draft-merchant">
+        <canvas id="sprite-merchant" width="100" height="100" class="sprite-canvas flip"></canvas>
+        <div class="merchant-bubble">¿Qué pieza te llevás?</div>
+      </div>
+      <h2 class="draft-title">ELIGE TU RECOMPENSA</h2>
+      <p class="draft-sub">Selecciona una pieza para añadir a tu colección</p>
+      <div id="draft-cards" class="draft-cards"></div>
+      <button class="btn-ghost mt" onclick="Game.skipDraft()">Saltar recompensa →</button>
+    </div>
+  </div>
+
+  <!--pantalla de evento-->
+  <div id="screen-event" class="screen">
+    <div class="event-wrap">
+      <canvas id="sprite-npc" width="100" height="100" class="sprite-canvas npc-sprite"></canvas>
+      <div id="event-icon" class="event-icon">❓</div>
+      <h2 id="event-title" class="event-title">EVENTO ARCANO</h2>
+      <p id="event-text" class="event-text"></p>
+      <div id="event-choices" class="event-choices"></div>
+    </div>
+  </div>
+
+  <!--pantalla de game over y victoria-->
+  <div id="screen-gameover" class="screen">
+    <div class="go-wrap">
+      <div id="go-icon" class="go-icon">💀</div>
+      <h2 id="go-title" class="go-title">RUN TERMINADA</h2>
+      <p id="go-sub" class="go-sub"></p>
+      <div id="go-stats" class="go-stats"></div>
+      <button class="btn-primary" onclick="Game.restartToTitle()">↩ NUEVA RUN</button>
+    </div>
+  </div>
+
+  <!-- tooltip -->
+  <div id="tooltip" class="tooltip hidden"></div>
+
+  <!-- popup de dano -->
+  <div id="dmg-popup" class="dmg-popup hidden"></div>
+
+  <!-- canvas fx -->
+  <canvas id="fx-canvas"></canvas>
+
+  <script src="game.js"></script>
+</body>
+</html>
