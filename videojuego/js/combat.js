@@ -1,0 +1,357 @@
+//combat.js: logica de combate, resolucion y rondas de construccion
+
+//combate
+var Combat = {
+  running:      false,
+  buildRound:   1,
+  enemyHp:      0,
+  enemyMaxHp:   0,
+  currentEnemy: null,
+  playerShield: 0,
+
+  init: function(zone, nodeType) {
+    var base = 22 + zone * 6;
+    if (nodeType === 'elite') base = 45 + zone * 12;
+    if (nodeType === 'boss')  base = 90 + zone * 25;
+
+    this.enemyHp      = base;
+    this.enemyMaxHp   = base;
+    this.playerShield = 0;
+    this.running      = false;
+    this.buildRound   = 1;
+
+    getId('log-entries').innerHTML = '';
+    this.updateEnemyUI();
+    this.updatePlayerUI();
+    this.updateImpulseUI();
+  },
+
+  //resolucion del tablero
+  resolveBoard: function(side) {
+    var grid    = (side === 'enemy') ? enemyGrid : playerGrid;
+    var dmg     = 0, shield = 0, reflect = 0, recursos = {};
+
+    //GEN
+    for (var r = 0; r < GRID_ROWS; r++)
+      for (var c = 0; c < GRID_COLS; c++) {
+        var p = getPiece(grid[r][c]);
+        if (p && p.type === TYPE_GEN) recursos[c + ',' + r] = p.output;
+      }
+
+    //TRANS
+    for (var r = 0; r < GRID_ROWS; r++)
+      for (var c = 0; c < GRID_COLS; c++) {
+        var p = getPiece(grid[r][c]);
+        if (!p || p.type !== TYPE_TRANS) continue;
+        var e = 0;
+        hexNeighbors(c, r).forEach(function(v) {
+          if (recursos[v.col + ',' + v.row]) e += recursos[v.col + ',' + v.row];
+        });
+        dmg += e * p.multiplier;
+      }
+
+    //CAT
+    var cat = 0, syn = 0;
+    for (var r = 0; r < GRID_ROWS; r++)
+      for (var c = 0; c < GRID_COLS; c++) {
+        var p = getPiece(grid[r][c]);
+        if (!p || p.type !== TYPE_CAT) continue;
+        var vv = hexNeighbors(c, r).filter(function(v) { return grid[v.row][v.col]; });
+        cat += p.amplify * vv.length;
+        var tg = false, tt = false;
+        vv.forEach(function(v) {
+          var vp = getPiece(grid[v.row][v.col]);
+          if (vp && vp.type === TYPE_GEN)   tg = true;
+          if (vp && vp.type === TYPE_TRANS) tt = true;
+        });
+        if (tg && tt) { cat += 0.3; syn++; }
+      }
+    dmg *= (1 + cat);
+
+    //ANCH
+    for (var r = 0; r < GRID_ROWS; r++)
+      for (var c = 0; c < GRID_COLS; c++) {
+        var p = getPiece(grid[r][c]);
+        if (!p || p.type !== TYPE_ANCH) continue;
+        if (p.shieldVal)  shield += p.shieldVal;
+        if (p.reflectPct) reflect = Math.max(reflect, p.reflectPct);
+      }
+
+    return {
+      damage:       Math.round(dmg),
+      shield:       shield,
+      reflect:      reflect,
+      synergyCount: syn,
+      catBonus:     Math.round(cat * 100),
+    };
+  },
+
+  //Log
+  log: function(msg, tipo) {
+    var entries = getId('log-entries');
+    var div = document.createElement('div');
+    div.className = 'log-entry ' + (tipo || '') + ' fade-in';
+    div.textContent = msg;
+    entries.appendChild(div);
+    entries.parentElement.scrollTop = entries.parentElement.scrollHeight;
+  },
+
+  //UI
+  updateEnemyUI: function() {
+    var pct = Math.max(0, this.enemyHp) / this.enemyMaxHp;
+    getId('e-hp').textContent = 'HP: ' + Math.max(0, this.enemyHp);
+    getId('e-hp-bar').style.width = (pct * 100) + '%';
+
+    var node = State.currentNode;
+    if (node) {
+      var nb = getId('node-badge');
+      nb.textContent = node.type === 'boss' ? 'JEFE' : node.type === 'elite' ? 'ÉLITE' : 'COMBATE';
+      nb.className   = 'node-badge' + (node.type === 'boss' ? ' boss' : node.type === 'elite' ? ' elite' : '');
+    }
+    if (this.currentEnemy) getId('enemy-name').textContent = this.currentEnemy.name;
+  },
+
+  updatePlayerUI: function() {
+    var pct = State.hp / State.maxHp;
+    getId('b-hp-bar').style.width = (pct * 100) + '%';
+    getId('b-hp-val').textContent = State.hp + '/' + State.maxHp;
+    updateSpriteHP(pct, Math.max(0, this.enemyHp) / this.enemyMaxHp);
+  },
+
+  updateImpulseUI: function() {
+    var dots = getId('b-impulse'); if (!dots) return;
+    dots.innerHTML = '';
+    for (var i = 0; i < State.maxImpulse; i++) {
+      var d = document.createElement('div');
+      d.className = 'impulse-dot' + (i < State.impulse ? '' : ' empty');
+      dots.appendChild(d);
+    }
+    var btn = getId('btn-impulse');
+    if (btn) {
+      btn.disabled = State.impulse <= 0 || this.running;
+      getId('impulse-cost').textContent = '(' + State.impulse + ' restantes)';
+    }
+  },
+
+  updatePreview: function() {
+    var pr = this.resolveBoard('player');
+    getId('p-dmg').textContent  = 'DMG: ' + pr.damage;
+    getId('p-shld').textContent = 'ESC: ' + pr.shield;
+    var syn = getId('p-syn');
+    if (pr.synergyCount > 0) syn.classList.remove('hidden');
+    else                     syn.classList.add('hidden');
+  },
+
+  //resolucion de ronda
+  runRound: async function() {
+    if (this.running) return;
+    if (boardCount('player') === 0) { this.log('⚠ Coloca al menos una pieza.'); return; }
+
+    this.running = true;
+    getId('btn-impulse').disabled = true;
+    getId('round-badge').classList.remove('hidden');
+    getId('round-num').textContent = this.buildRound;
+    this.log('━━ RONDA ' + this.buildRound + ' ━━');
+
+    var fases = ['FASE 1 — GENERADORES','FASE 2 — TRANSFORMADORES','FASE 3 — CATALIZADORES','FASE 4 — ANCLAS','FASE 5 — DAÑO FINAL'];
+    var phEl  = getId('phase-indicator'); phEl.classList.remove('hidden');
+    for (var i = 0; i < fases.length; i++) { phEl.textContent = fases[i]; await waitMs(280); }
+    phEl.classList.add('hidden');
+
+    var pr = this.resolveBoard('player');
+    this.playerShield = pr.shield;
+
+    if (pr.damage > 0) this.log('⚡ Tu tablero genera ' + pr.damage + ' de daño', 'dmg');
+    if (pr.shield > 0) this.log('🛡 Escudo: ' + pr.shield + ' pts', 'shld');
+
+    if (pr.synergyCount > 0) {
+      this.log('✦ x' + pr.synergyCount + ' Sinergia! +' + pr.catBonus + '% daño extra', 'syn');
+      SFX.sinergia();
+      var pb = getId('playerBoard');
+      if (pb) { var rc = pb.getBoundingClientRect(); fxSynergy(rc.left + rc.width / 2, rc.top + rc.height / 2); }
+      await waitMs(500);
+    }
+    await waitMs(280);
+
+    var er = this.resolveBoard('enemy'), incoming = er.damage;
+
+    if (this.playerShield > 0) {
+      var bl = Math.min(this.playerShield, incoming);
+      incoming -= bl;
+      this.log('🛡 Escudo bloquea ' + bl + ' pts', 'shld');
+      var ps = getId('sprite-player');
+      if (ps) { var rc2 = ps.getBoundingClientRect(); fxShield(rc2.left + rc2.width / 2, rc2.top + rc2.height / 2); }
+    }
+
+    if (pr.reflect > 0 && incoming > 0) {
+      var ref = Math.round(incoming * pr.reflect);
+      this.enemyHp -= ref;
+      this.log('↩ Reflejo: ' + ref + ' al enemigo', 'syn');
+      this.updateEnemyUI();
+    }
+
+    await new Promise(function(resolve) { playPlayerAttack(resolve); });
+
+    if (pr.damage > 0) {
+      this.enemyHp -= pr.damage;
+      spriteHit('enemy'); SFX.danoEnemigo();
+
+      var isBoss = false;
+      if (Combat.currentEnemy)
+        for (var i = 0; i < ENEMIES.boss.length; i++)
+          if (ENEMIES.boss[i].name === Combat.currentEnemy.name) { isBoss = true; break; }
+
+      if (enemyAnim && this.enemyHp > 0 && !isBoss) {
+        var hd  = State.zone <= 1 ? SPRITE_DEF.necroHurt  : SPRITE_DEF.golemHurt;
+        var id2 = State.zone <= 1 ? SPRITE_DEF.necroIdle  : SPRITE_DEF.golemIdle;
+        enemyAnim.changeDef(hd, false, function() {
+          setTimeout(function() { if (enemyAnim) enemyAnim.changeDef(id2, true); }, 80);
+        });
+      }
+      showDmgPopup('-' + pr.damage, window.innerWidth * 0.73, window.innerHeight * 0.35);
+      this.updateEnemyUI();
+    }
+    await waitMs(280);
+
+    if (incoming > 0) {
+      await new Promise(function(resolve) { playEnemyAttack(resolve); });
+      State.hp = Math.max(0, State.hp - incoming);
+      spriteHit('player'); SFX.danoJugador();
+      if (playerAnim && State.hp > 0)
+        playerAnim.changeDef(SPRITE_DEF.damaged, false, function() {
+          setTimeout(function() { if (playerAnim) playerAnim.changeDef(SPRITE_DEF.idle, true); }, 100);
+        });
+      this.log('💥 Enemigo inflige ' + incoming + '. HP: ' + State.hp, 'dmg');
+      showDmgPopup('-' + incoming, window.innerWidth * 0.27, window.innerHeight * 0.35);
+    }
+
+    this.updateEnemyUI(); this.updatePlayerUI();
+    updateSpriteHP(State.hp / State.maxHp, Math.max(0, this.enemyHp) / this.enemyMaxHp);
+
+    var fp = [];
+    for (var r = 0; r < GRID_ROWS; r++)
+      for (var c = 0; c < GRID_COLS; c++) if (enemyGrid[r][c]) fp.push({ col: c, row: r });
+    boardRender('enemyBoard', 'enemy', null, fp);
+    await waitMs(200);
+    boardRender('enemyBoard', 'enemy');
+    boardRender('playerBoard', 'player');
+    await waitMs(380);
+
+    this.running = false;
+    getId('round-badge').classList.add('hidden');
+
+    //victoria
+    if (this.enemyHp <= 0) {
+      await new Promise(function(resolve) { playEnemyDeath(resolve); });
+      this.log('══ ¡VICTORIA! ══', 'vic');
+      SFX.victoria();
+      fxVictory(window.innerWidth / 2, window.innerHeight * 0.3);
+      var regen = 0;
+      for (var r = 0; r < GRID_ROWS; r++)
+        for (var c = 0; c < GRID_COLS; c++) {
+          var p = getPiece(playerGrid[r][c]);
+          if (p && p.type === TYPE_ANCH && p.regenVal) regen += p.regenVal;
+        }
+      if (regen > 0) { State.hp = Math.min(State.maxHp, State.hp + regen); this.log('💚 Anclas: +' + regen + ' HP', 'shld'); }
+      State.combatsWon++;
+      await waitMs(700);
+      Game.afterCombatVictory();
+      return;
+    }
+
+    //derrota
+    if (State.hp <= 0) {
+      this.log('══ DERROTA ══', 'def'); SFX.derrota();
+      if (playerAnim) {
+        await new Promise(function(resolve) {
+          playerAnim.changeDef(SPRITE_DEF.death, false, function() { setTimeout(resolve, 400); });
+        });
+      } else { await waitMs(700); }
+      Game.gameOver();
+      return;
+    }
+
+    this.buildRound++;
+    this.log('── Enemigo sobrevive (' + Math.max(0, this.enemyHp) + ' HP). Nueva ronda ──', 'info');
+    await waitMs(380);
+    RoundBuilder.startBuildRound();
+  },
+};
+
+//roundBuilder
+var RoundBuilder = {
+  roundPieces: [],
+  placed: 0,
+
+  startBuildRound: function() {
+    boardClear('player'); this.placed = 0;
+    var pool = [];
+    for (var i = 0; i < CATALOG.length; i++)
+      if (CATALOG[i].rarity <= Math.min(State.zone, 3)) pool.push(CATALOG[i]);
+    for (var i = 0; i < State.unlockedIds.length; i++) {
+      var p = getPiece(State.unlockedIds[i]); if (p) pool.push(p);
+    }
+    this.roundPieces = [];
+    for (var i = 0; i < PIECES_PER_ROUND; i++)
+      this.roundPieces.push(pool[Math.floor(Math.random() * pool.length)]);
+    this.renderPieces();
+    this.updateLabels();
+    Combat.updatePreview();
+    BattleUI.attachCanvasClick();
+    Combat.updateImpulseUI();
+  },
+
+  renderPieces: function() {
+    var grid = getId('piece-grid'); grid.innerHTML = '';
+    for (var i = 0; i < this.roundPieces.length; i++) {
+      var p = this.roundPieces[i], card = document.createElement('div');
+      card.className = 'piece-card';
+      card.innerHTML =
+        '<span class="pc-icon" style="color:' + TYPE_COLORS[p.type] + '">' + TYPE_ICONS[p.type] + '</span>' +
+        '<div class="pc-info"><span class="pc-name">' + p.name + '</span>' +
+        '<span class="pc-type ' + p.type + '">' + TYPE_LABELS[p.type] + '</span></div>' +
+        '<span class="pc-rarity">' + RARITIES[p.rarity] + '</span>';
+      (function(idx, piece, c) {
+        c.addEventListener('click',      function() { BattleUI.selectPiece(idx, c); });
+        c.addEventListener('mouseenter', function(e) { Tooltip.show(e, piece); });
+        c.addEventListener('mouseleave', function() { Tooltip.hide(); });
+      })(i, p, card);
+      grid.appendChild(card);
+    }
+  },
+
+  updateLabels: function() {
+    getId('build-lbl').textContent   = 'Ronda ' + Combat.buildRound + ' — Coloca tus ' + PIECES_PER_ROUND + ' piezas';
+    getId('pieces-left').textContent = (PIECES_PER_ROUND - this.placed) + ' restantes';
+  },
+
+  markPlaced: function(index) {
+    this.placed++;
+    var cards = getId('piece-grid').querySelectorAll('.piece-card');
+    if (cards[index]) cards[index].classList.add('used');
+    this.updateLabels();
+    Combat.updatePreview();
+    if (this.placed >= PIECES_PER_ROUND) {
+      Combat.log('✓ 5 piezas — resolviendo...', 'info');
+      setTimeout(function() { Combat.runRound(); }, 500);
+    }
+  },
+
+  addExtraPiece: function() {
+    var pool  = CATALOG.filter(function(p) { return p.rarity <= Math.min(State.zone, 3); });
+    var extra = pool[Math.floor(Math.random() * pool.length)];
+    this.roundPieces.push(extra);
+    var grid = getId('piece-grid'), card = document.createElement('div'), idx = this.roundPieces.length - 1;
+    card.className = 'piece-card fade-in';
+    card.innerHTML =
+      '<span class="pc-icon" style="color:' + TYPE_COLORS[extra.type] + '">' + TYPE_ICONS[extra.type] + '</span>' +
+      '<div class="pc-info"><span class="pc-name">' + extra.name + '</span></div>';
+    (function(i, p, c) {
+      c.addEventListener('click',      function() { BattleUI.selectPiece(i, c); });
+      c.addEventListener('mouseenter', function(e) { Tooltip.show(e, p); });
+      c.addEventListener('mouseleave', function() { Tooltip.hide(); });
+    })(idx, extra, card);
+    grid.appendChild(card);
+    Combat.log('⚡ Pieza extra por impulso', 'syn');
+  },
+};
