@@ -137,7 +137,10 @@ function buildTitleHexBackground() {
     }
   cont.appendChild(svg);
 }
-
+//Prueba
+document.querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('click', () => SFX.seleccionar());
+});
 // ── Arranque ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   fxInit();

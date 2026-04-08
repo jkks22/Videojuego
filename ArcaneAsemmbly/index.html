@@ -20,6 +20,9 @@
       <h1 class="game-title">ARCANE<br><span>ASSEMBLY</span></h1>
       <p class="game-subtitle">Roguelite · Construcción de Tablero Táctico</p>
       <button class="btn-primary pulse" onclick="Game.startRun()">⚡ INICIAR RUN</button>
+      <button class="btn-ghost" onclick="showScreen('screen-rules')">📖 REGLAS</button>
+      <button class="btn-ghost" onclick="showScreen('screen-options')">⚙ OPCIONES</button>
+      <button class="btn-ghost" onclick="showScreen('screen-credits')">👤 CRÉDITOS</button>
     </div>
   </div>
 
@@ -202,6 +205,39 @@
   <!-- popup de dano -->
   <div id="dmg-popup" class="dmg-popup hidden"></div>
 
+  <!-- pantalla de reglas -->
+<div id="screen-rules" class="screen">
+  <div class="go-wrap">
+    <h2>📖 REGLAS</h2>
+    <p>
+      Coloca piezas en el tablero para generar daño.<br>
+      Generadores → crean energía ⚡<br>
+      Transformadores → convierten en daño ⚙<br>
+      Catalizadores → amplifican ✦<br>
+      Anclas → dan escudo 🛡<br><br>
+      ¡Crea sinergias para ganar!
+    </p>
+    <button class="btn-primary" onclick="showScreen('screen-title')">⬅ VOLVER</button>
+  </div>
+</div>
+
+<!-- pantalla de opciones -->
+<div id="screen-options" class="screen">
+  <div class="go-wrap">
+    <h2>⚙ OPCIONES</h2>
+    <p>Aquí puedes agregar volumen, dificultad, etc.</p>
+    <button class="btn-primary" onclick="showScreen('screen-title')">⬅ VOLVER</button>
+  </div>
+</div>
+
+<!-- pantalla de créditos -->
+<div id="screen-credits" class="screen">
+  <div class="go-wrap">
+    <h2>👤 CRÉDITOS</h2>
+    <p>Desarrollado por Josue Gomez, Nicolas Matamoros, Luis Felipe Loera.</p>
+    <button class="btn-primary" onclick="showScreen('screen-title')">⬅ VOLVER</button>
+  </div>
+</div>
   <!--canvas fx-->
   <canvas id="fx-canvas"></canvas>
 
