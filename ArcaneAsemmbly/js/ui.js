@@ -1,5 +1,4 @@
-
-//ui.js: BattleUI (selección de piezas, interacción con canvas), Tooltip, Draft, Events, Shop y Mapa.
+//ui.js: BattleUI, Tooltip, Draft, Events, Shop y Mapa
 
 //interfaz de combate
 var BattleUI = {

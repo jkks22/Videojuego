@@ -303,6 +303,10 @@ var Combat = {
     this.buildRound++;
     this.log('── Enemigo sobrevive (' + Math.max(0, this.enemyHp) + ' HP). Nueva ronda ──', 'info');
     await waitMs(380);
+
+    //el enemigo reconfigura su tablero al inicio de cada nueva ronda
+    boardGenerateEnemy(State.zone, State.currentNode.type);
+    boardRender('enemyBoard', 'enemy');
     RoundBuilder.startBuildRound();
   },
 };

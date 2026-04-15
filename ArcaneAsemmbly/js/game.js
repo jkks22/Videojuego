@@ -1,4 +1,3 @@
-
 //game.js: controlador principal del juego: inicialización de runs, flujo del mapa y condiciones de victoria/derrota
 
 var Game = {
@@ -168,5 +167,4 @@ document.addEventListener('DOMContentLoaded', function() {
   buildTitleHexBackground();
   showScreen('screen-title');
 });
-
 

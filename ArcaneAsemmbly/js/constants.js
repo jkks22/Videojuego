@@ -134,10 +134,10 @@ var SPRITE_DEF = {
   death:       { src:'assets/sprites/death.png',          cols:5,  rows:1, frameW:106, frameH:22,  totalFrames:5,  fps:8  },
   damaged:     { src:'assets/sprites/damaged.png',        cols:2,  rows:1, frameW:106, frameH:22,  totalFrames:2,  fps:8  },
 
-  necroIdle:   { src:'assets/sprites/necromancer.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:8,  offsetRow:0 },
-  necroAttack: { src:'assets/sprites/necromancer.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:10, offsetRow:2 },
-  necroHurt:   { src:'assets/sprites/necromancer.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:8,  offsetRow:1 },
-  necroDeath:  { src:'assets/sprites/necromancer.png',    cols:5,  rows:4, frameW:128, frameH:140, totalFrames:5,  fps:8,  offsetRow:3 },
+  necroIdle:   { src:'assets/sprites/necromancerIDLE.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:8,  offsetRow:0 },
+  necroAttack: { src:'assets/sprites/necromancerATTACK.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:10, offsetRow:2 },
+  necroHurt:   { src:'assets/sprites/necromancerHURT.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:8,  offsetRow:1 },
+  necroDeath:  { src:'assets/sprites/necromancerDEATH.png',    cols:5,  rows:4, frameW:128, frameH:140, totalFrames:5,  fps:8,  offsetRow:3 },
 
   golemIdle:   { src:'assets/sprites/Golem_1_idle.png',   cols:8,  rows:1, frameW:90,  frameH:64,  totalFrames:8,  fps:8  },
   golemAttack: { src:'assets/sprites/Golem_1_attack.png', cols:11, rows:1, frameW:90,  frameH:64,  totalFrames:11, fps:12 },
