@@ -1,3 +1,4 @@
+
 //api.js: módulo de comunicación entre el cliente del juego y la API REST del servidor.
 //todas las llamadas son opcionales: si el jugador no está autenticado, se omiten
 

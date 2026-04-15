@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -225,7 +226,10 @@
 <div id="screen-options" class="screen">
   <div class="go-wrap">
     <h2>⚙ OPCIONES</h2>
-    <p>Aquí puedes agregar volumen, dificultad, etc.</p>
+    <p>Volumen del juego </p>
+    <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5" onchange="Game.setVolume(this.value)">
+    <p> Volumen de SFX</p>
+    <input type="range" id="sfx-slider" min="0" max="1" step="0.01" value="0.5" onchange="Game.setSFXVolume(this.value)"> 
     <button class="btn-primary" onclick="showScreen('screen-title')">⬅ VOLVER</button>
   </div>
 </div>
