@@ -1,9 +1,10 @@
-//ui.js: BattleUI, Tooltip, Draft, Events, Shop y Mapa
+//ui.js: BattleUI (selección de piezas, interacción con canvas), Tooltip, Draft, Events, Shop y Mapa.
 
-//BattleUI
+//interfaz de combate
 var BattleUI = {
-  selectedIndex: null,
+  selectedIndex: null, // índice de la tarjeta seleccionada actualmente, o null
 
+  //inicializa un encuentro de combate para el nodo del mapa indicado
   setup: function(node) {
     var enemyData = getRandom(ENEMIES[node.type] || ENEMIES.combat);
     Combat.currentEnemy = enemyData;
@@ -13,15 +14,18 @@ var BattleUI = {
     showScreen('screen-battle');
     boardRender('enemyBoard', 'enemy');
     Combat.log(enemyData.name + ' — "' + enemyData.flavorText + '"', 'info');
+    //mostrar al jugador el poder estimado del enemigo antes de la ronda
     var er = Combat.resolveBoard('enemy');
     Combat.log('Poder estimado: ' + er.damage + ' DMG / ' + er.shield + ' ESC', 'info');
     RoundBuilder.startBuildRound();
   },
 
+  //alterna la selección de una tarjeta de pieza por índice
   selectPiece: function(index, cardEl) {
     if (Combat.running) return;
     getId('piece-grid').querySelectorAll('.piece-card').forEach(function(c) { c.classList.remove('selected'); });
     if (this.selectedIndex === index) {
+      //clic en la misma tarjeta la deselecciona
       this.selectedIndex = null;
     } else {
       this.selectedIndex = index;
@@ -31,18 +35,22 @@ var BattleUI = {
     boardRender('playerBoard', 'player');
   },
 
+  //reemplaza el canvas del jugador para eliminar listeners viejos y adjuntar nuevos
   attachCanvasClick: function() {
     var self = this;
-    var old  = getId('playerBoard'), nw = old.cloneNode(true);
+    var old  = getId('playerBoard');
+    var nw   = old.cloneNode(true);
     old.parentNode.replaceChild(nw, old);
 
+    //colocar la pieza seleccionada en la celda hexagonal que el jugador hizo clic
     nw.addEventListener('click', function(e) {
       if (Combat.running) return;
       if (self.selectedIndex === null) { Combat.log('⚠ Selecciona una pieza primero.'); return; }
       var rect = nw.getBoundingClientRect();
       var px   = (e.clientX - rect.left) * (nw.width / rect.width);
       var py   = (e.clientY - rect.top)  * (nw.height / rect.height);
-      var cell = hexCellAt(px, py); if (!cell) return;
+      var cell = hexCellAt(px, py);
+      if (!cell) return;
       if (boardGet(cell.col, cell.row, 'player')) { Combat.log('⚠ Casilla ocupada.'); return; }
       boardPlace(cell.col, cell.row, RoundBuilder.roundPieces[self.selectedIndex].id, 'player');
       SFX.colocar();
@@ -51,6 +59,7 @@ var BattleUI = {
       boardRender('playerBoard', 'player');
     });
 
+    //mostrar previsualización de colocación al mover el mouse con una pieza seleccionada
     nw.addEventListener('mousemove', function(e) {
       if (Combat.running || self.selectedIndex === null) return;
       var rect = nw.getBoundingClientRect();
@@ -62,6 +71,7 @@ var BattleUI = {
     nw.addEventListener('mouseleave', function() { boardRender('playerBoard', 'player'); });
   },
 
+  //elimina todas las piezas del jugador y reinicia los contadores de la ronda de construcción
   clearBoard: function() {
     if (Combat.running) return;
     boardClear('player');
@@ -73,6 +83,7 @@ var BattleUI = {
     boardRender('playerBoard', 'player');
   },
 
+  //gasta una carga de impulso para agregar una pieza extra a la mano actual
   useImpulse: function() {
     if (State.impulse <= 0 || Combat.running) return;
     State.impulse--;
@@ -82,17 +93,17 @@ var BattleUI = {
   },
 };
 
-// ── Tooltip ───────────────────────────────────────────────────
+//mostrar información de una pieza en un tooltip cerca del cursor del mouse
 var Tooltip = {
   show: function(e, piece) {
-    var t     = getId('tooltip');
+    var t = getId('tooltip');
     var stats = '';
-    if (piece.output)     stats = 'Genera: '   + piece.output;
-    if (piece.multiplier) stats = 'Mult: x'    + piece.multiplier;
+    if (piece.output)     stats = 'Genera: '    + piece.output;
+    if (piece.multiplier) stats = 'Mult: x'     + piece.multiplier;
     if (piece.amplify)    stats = 'Amplifica: +' + Math.round(piece.amplify * 100) + '%';
-    if (piece.shieldVal)  stats = 'Escudo: '   + piece.shieldVal;
-    if (piece.regenVal)   stats = 'Regen: '    + piece.regenVal + ' HP';
-    if (piece.reflectPct) stats = 'Reflejo: '  + Math.round(piece.reflectPct * 100) + '%';
+    if (piece.shieldVal)  stats = 'Escudo: '    + piece.shieldVal;
+    if (piece.regenVal)   stats = 'Regen: '     + piece.regenVal + ' HP';
+    if (piece.reflectPct) stats = 'Reflejo: '   + Math.round(piece.reflectPct * 100) + '%';
 
     t.innerHTML =
       '<span class="tt-name" style="color:' + TYPE_COLORS[piece.type] + '">' + piece.name + '</span>' +
@@ -106,8 +117,9 @@ var Tooltip = {
   hide: function() { getId('tooltip').classList.add('hidden'); },
 };
 
-// ── Draft ─────────────────────────────────────────────────────
+//selección de recompensa
 var Draft = {
+  //muestra 3 piezas aleatorias filtradas por zona y rareza mínima
   show: function(zone, minRarity) {
     if (!minRarity) minRarity = 0;
     showScreen('screen-draft');
@@ -118,9 +130,12 @@ var Draft = {
     });
     elegibles.sort(function() { return Math.random() - .5; });
 
-    var picks = elegibles.slice(0, 3), cont = getId('draft-cards'); cont.innerHTML = '';
+    var picks = elegibles.slice(0, 3);
+    var cont  = getId('draft-cards');
+    cont.innerHTML = '';
     for (var i = 0; i < picks.length; i++) {
-      var piece = picks[i], card = document.createElement('div');
+      var piece = picks[i];
+      var card  = document.createElement('div');
       card.className = 'draft-card';
       card.innerHTML =
         '<div class="dc-icon" style="color:' + TYPE_COLORS[piece.type] + '">' + TYPE_ICONS[piece.type] + '</div>' +
@@ -129,6 +144,7 @@ var Draft = {
         '<div class="dc-desc">' + piece.desc + '</div>' +
         '<div class="dc-rarity" style="color:' + RARITY_COLORS[piece.rarity] + '">' + RARITIES[piece.rarity].toUpperCase() + '</div>';
       (function(p) {
+        //al hacer clic en una tarjeta se agrega la pieza a la colección y se vuelve al mapa
         card.addEventListener('click', function() { State.unlockedIds.push(p.id); Game.afterDraft(); });
       })(piece);
       cont.appendChild(card);
@@ -136,10 +152,14 @@ var Draft = {
   },
 };
 
-// ── Events ────────────────────────────────────────────────────
+//eventos
 var Events = {
   trigger: function() {
-    if (EVENT_POOL.length === 0 || State.eventUses >= EVENT_USES_MAX) { Game.afterDraft(); return; }
+    //omitir si el pool está vacío o el jugador ya usó todos los eventos disponibles
+    if (EVENT_POOL.length === 0 || State.eventUses >= EVENT_USES_MAX) {
+      Game.afterDraft();
+      return;
+    }
     var ev = getRandom(EVENT_POOL);
     showScreen('screen-event');
     initNpcSprite();
@@ -147,7 +167,8 @@ var Events = {
     getId('event-title').textContent = ev.title;
     getId('event-text').textContent  = ev.text;
 
-    var ch = getId('event-choices'); ch.innerHTML = '';
+    var ch = getId('event-choices');
+    ch.innerHTML = '';
     for (var i = 0; i < ev.choices.length; i++) {
       (function(c) {
         var btn = document.createElement('button');
@@ -160,24 +181,27 @@ var Events = {
     State.eventUses++;
   },
 
+  //aplica el efecto mecánico de la opción elegida por el jugador
   resolve: function(c) {
     if      (c.action === 'heal') { State.hp = Math.min(State.maxHp, State.hp + (c.value || 20)); Draft.show(State.zone); }
-    else if (c.action === 'rare') { Draft.show(State.zone, 2); }
+    else if (c.action === 'rare') { Draft.show(State.zone, 2); }  // solo piezas de rareza ≥ 2
     else if (c.action === 'dmg')  { State.hp -= (c.value || 10); if (State.hp <= 0) Game.gameOver(); else Game.afterDraft(); }
-    else                           Game.afterDraft();
+    else                           Game.afterDraft(); //skip o una acción desconocida -> volver al mapa
   },
 };
 
-// ── Shop ──────────────────────────────────────────────────────
+//tienda
 var Shop = {
+  //la tienda reutiliza la pantalla Draft filtrada a piezas poco-comunes o mejores
   show: function(zone) {
     if (State.shopUses >= SHOP_USES_MAX) { Game.afterDraft(); return; }
     State.shopUses++;
-    Draft.show(zone, 1);
+    Draft.show(zone, 1); //rareza mínima 1 (poco común)
   },
 };
 
-// ── Mapa ──────────────────────────────────────────────────────
+//mapa
+//genera los nodos del mapa con rutas ramificadas para la zona indicada
 function generateMap(zone) {
   return [
     { id:0, zone:zone, type:'start',  row:0, col:1, accessible:true,  completed:true,  children:[1,2] },
@@ -189,20 +213,25 @@ function generateMap(zone) {
   ];
 }
 
+//construye y retorna un SVG del mapa a partir de la lista de nodos
+//onClickNode se llama cuando el jugador hace clic en un nodo accesible
 function renderMap(nodes, onClickNode) {
-  var W = 440, H = 380, ns = 'http://www.w3.org/2000/svg';
+  var W = 440, H = 380, ns = 'http://www.w3.org/2000/svg'; //se utiliza como un identificador único para diferenciar
+  //los gráficos vectoriales de otros elementos HTML o XML y para crear elementos SVG con createElementNS
+  //que en este caso se usa para construir el mapa del juego con nodos y conexiones entre ellos   
   var svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
-  svg.setAttribute('width', W);
+  svg.setAttribute('width',  W);
   svg.setAttribute('height', H);
 
   var COLOR = { start:'#00E5C8', combat:'#FFD166', elite:'#FF6B9D', shop:'#9B72CF', event:'#56CFB2', boss:'#FF4444' };
   var ICON  = { start:'⬡', combat:'⚔', elite:'💀', shop:'🏪', event:'❓', boss:'☠' };
   var LABEL = { start:'INICIO', combat:'COMBATE', elite:'ÉLITE', shop:'TIENDA', event:'EVENTO', boss:'JEFE' };
 
+  //posición en píxeles de un nodo según su fila y columna en la grilla del mapa
   function pos(n) { return { x: 80 + n.col * 140, y: 45 + n.row * (H / 4.3) }; }
 
-  // Líneas de conexión
+  //bibujar líneas de conexión punteadas entre nodo padre e hijos
   for (var i = 0; i < nodes.length; i++) {
     var n = nodes[i]; if (!n.children) continue;
     for (var j = 0; j < n.children.length; j++) {
@@ -213,23 +242,26 @@ function renderMap(nodes, onClickNode) {
       var ln = document.createElementNS(ns, 'line');
       ln.setAttribute('x1', d.x); ln.setAttribute('y1', d.y);
       ln.setAttribute('x2', h.x); ln.setAttribute('y2', h.y);
-      ln.setAttribute('stroke', '#1E3050'); ln.setAttribute('stroke-width', '2');
+      ln.setAttribute('stroke', '#1E3050');
+      ln.setAttribute('stroke-width', '2');
       ln.setAttribute('stroke-dasharray', '5 4');
       svg.appendChild(ln);
     }
   }
 
-  // Nodos
+  //bibujar cada nodo con su círculo, icono y etiqueta
   for (var i = 0; i < nodes.length; i++) {
     var n = nodes[i], p = pos(n), col = COLOR[n.type] || '#888';
     var active = n.accessible && !n.completed;
-    var bl     = (n.type === 'shop'  && State.shopUses  >= SHOP_USES_MAX) ||
-                 (n.type === 'event' && State.eventUses >= EVENT_USES_MAX);
+    //un nodo está bloqueado si su límite de uso fue alcanzado (tienda/evento)
+    var bl = (n.type === 'shop'  && State.shopUses  >= SHOP_USES_MAX) ||
+             (n.type === 'event' && State.eventUses >= EVENT_USES_MAX);
 
     var g = document.createElementNS(ns, 'g');
     g.setAttribute('transform', 'translate(' + p.x + ',' + p.y + ')');
     g.style.cursor = active ? 'pointer' : 'default';
 
+    //halo pulsante para nodos activos
     if (active) {
       var halo = document.createElementNS(ns, 'circle');
       halo.setAttribute('r', '28'); halo.setAttribute('fill', 'none');
@@ -240,8 +272,8 @@ function renderMap(nodes, onClickNode) {
 
     var circ = document.createElementNS(ns, 'circle');
     circ.setAttribute('r', '22');
-    circ.setAttribute('fill',   n.completed ? '#080C18' : bl ? '#1a1a2e' : col + '1A');
-    circ.setAttribute('stroke', n.completed ? '#1E3050' : bl ? '#333'    : col);
+    circ.setAttribute('fill',         n.completed ? '#080C18' : bl ? '#1a1a2e' : col + '1A');
+    circ.setAttribute('stroke',       n.completed ? '#1E3050' : bl ? '#333'    : col);
     circ.setAttribute('stroke-width', active ? '2.5' : '1.5');
     g.appendChild(circ);
 

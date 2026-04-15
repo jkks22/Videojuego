@@ -1,21 +1,22 @@
-//constants.js — Constantes globales, catálogo y datos del juego
+//constants.js: constantes globales, catálogo de piezas, enemigos, eventos y sprites.
 
-//tablero y eventos
-var GRID_COLS       = 5;
-var GRID_ROWS       = 5;
-var HEX_SIZE        = 32;
-var CANVAS_W        = 340;
-var CANVAS_H        = 340;
-var PIECES_PER_ROUND = 5;
-var SHOP_USES_MAX   = 2;
-var EVENT_USES_MAX  = 3;
+//dimensiones del tablero hexagonal y límites de jugabilidad
+var GRID_COLS        = 5;
+var GRID_ROWS        = 5;
+var HEX_SIZE         = 32;
+var CANVAS_W         = 340;
+var CANVAS_H         = 340;
+var PIECES_PER_ROUND = 5;   //piezas que el jugador coloca por ronda
+var SHOP_USES_MAX    = 2;   //veces máximas que se puede usar la tienda por run
+var EVENT_USES_MAX   = 3;   //eventos máximos por run
 
-//tipos de piezas
+//identificadores internos de tipo de pieza
 var TYPE_GEN   = 'generator';
 var TYPE_TRANS = 'transformer';
 var TYPE_CAT   = 'catalyst';
 var TYPE_ANCH  = 'anchor';
 
+//color de visualización por tipo de pieza
 var TYPE_COLORS = {
   generator:   '#00E5C8',
   transformer: '#FFD166',
@@ -23,6 +24,7 @@ var TYPE_COLORS = {
   anchor:      '#56CFB2',
 };
 
+//icono emoji por tipo de pieza
 var TYPE_ICONS = {
   generator:   '⚡',
   transformer: '⚙',
@@ -30,6 +32,7 @@ var TYPE_ICONS = {
   anchor:      '⬡',
 };
 
+//etiqueta de texto por tipo de pieza
 var TYPE_LABELS = {
   generator:   'GENERADOR',
   transformer: 'TRANSFORMADOR',
@@ -37,10 +40,12 @@ var TYPE_LABELS = {
   anchor:      'ANCLA',
 };
 
+// Nombres y colores de rareza (índice 0 = común … 4 = legendaria)
 var RARITIES      = ['común', 'poco común', 'rara', 'épica', 'legendaria'];
 var RARITY_COLORS = ['#6B7FA3', '#56CFB2', '#9B72CF', '#FFD166', '#FF6B9D'];
 
-//catalogo de piezas
+//catálogo completo de piezas del juego
+//cada pieza tiene: id único, nombre, tipo, estadística principal, rareza y descripción
 var CATALOG = [
   { id:'gen_e', name:'Cristal de Energía',      type:TYPE_GEN,   output:2,           rarity:0, desc:'Genera 2 unidades de energía base.' },
   { id:'gen_h', name:'Núcleo Térmico',           type:TYPE_GEN,   output:3,           rarity:1, desc:'Genera 3 unidades de calor arcano.' },
@@ -59,7 +64,7 @@ var CATALOG = [
   { id:'anc_f', name:'Ancla Fortaleza',         type:TYPE_ANCH,  shieldVal:18,       rarity:3, desc:'Genera 18 puntos de escudo.' },
 ];
 
-//enemigos
+//enemigos agrupados por tipo de nodo del mapa
 var ENEMIES = {
   combat: [
     { name:'Guardián Arcano',    build:'mixed',   flavorText:'Sus redes de energía pulsan en sintonía.' },
@@ -78,26 +83,67 @@ var ENEMIES = {
   ],
 };
 
-//eventos del mapa
+//conjunto de eventos aleatorios que aparecen en nodos de tipo "event"
+//cada evento tiene: icono, título, texto narrativo y arreglo de opciones con su efecto mecánico
 var EVENT_POOL = [
-  // (los eventos van aquí)
+  {
+    icon: '⛲',
+    title: 'SANTUARIO CURATIVO',
+    text: 'Un santuario brillante irradia energía cálida.\nSus runas prometen restauración a quienes se arrodillen.',
+    choices: [
+      { label: 'Rezar en el santuario', effect: 'Recupera 25 HP, luego elige una pieza', action: 'heal', value: 25 },
+      { label: 'Ignorarlo',             effect: 'No ocurre nada',                        action: 'skip' },
+    ],
+  },
+  {
+    icon: '📚',
+    title: 'BIBLIOTECA ANTIGUA',
+    text: 'Estantes decrépitos guardan planos de construcciones arcanas olvidadas.\nAlgunos parecen increíblemente poderosos.',
+    choices: [
+      { label: 'Estudiar los planos raros', effect: 'Obtén una pieza rara',        action: 'rare' },
+      { label: 'Incendiar la biblioteca',   effect: 'Recibes 20 HP de daño',       action: 'dmg', value: 20 },
+      { label: 'Alejarte',                  effect: 'No ocurre nada',              action: 'skip' },
+    ],
+  },
+  {
+    icon: '🔮',
+    title: 'EXTRAÑO MISTERIOSO',
+    text: 'Una figura encapuchada te ofrece una poderosa pieza arcana.\n"Sin costo", dice con una sonrisa torcida.',
+    choices: [
+      { label: 'Aceptar el regalo', effect: 'Obtén una pieza rara', action: 'rare' },
+      { label: 'Rechazar la oferta', effect: 'No ocurre nada',      action: 'skip' },
+    ],
+  },
+  {
+    icon: '⚡',
+    title: 'GÉISER DE MANÁ',
+    text: 'Una línea ley crepitante erupciona del suelo bajo tus pies.\nEnergía mágica pura inunda el área.',
+    choices: [
+      { label: 'Absorber la energía',    effect: 'Recupera 20 HP, luego elige una pieza', action: 'heal', value: 20 },
+      { label: 'Sobrecargar tu sistema', effect: 'Recibes 15 HP de daño',                 action: 'dmg',  value: 15 },
+      { label: 'Ignorarlo',             effect: 'No ocurre nada',                          action: 'skip' },
+    ],
+  },
 ];
 
-//definiciones de sprites
+//definiciones de hojas de sprites — cols/rows describen el layout de la hoja
+//offsetRow se usa cuando múltiples animaciones comparten la misma imagen
 var SPRITE_DEF = {
   idle:        { src:'assets/sprites/idle.png',           cols:5,  rows:1, frameW:106, frameH:22,  totalFrames:5,  fps:8  },
   attack:      { src:'assets/sprites/attack.png',         cols:11, rows:1, frameW:106, frameH:22,  totalFrames:11, fps:12 },
   death:       { src:'assets/sprites/death.png',          cols:5,  rows:1, frameW:106, frameH:22,  totalFrames:5,  fps:8  },
   damaged:     { src:'assets/sprites/damaged.png',        cols:2,  rows:1, frameW:106, frameH:22,  totalFrames:2,  fps:8  },
-  necroIdle:   { src:'assets/sprites/necromancer.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:8,  offsetRow:0 },
-  necroAttack: { src:'assets/sprites/necromancer.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:10, offsetRow:2 },
-  necroHurt:   { src:'assets/sprites/necromancer.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:8,  offsetRow:1 },
-  necroDeath:  { src:'assets/sprites/necromancer.png',    cols:5,  rows:4, frameW:128, frameH:140, totalFrames:5,  fps:8,  offsetRow:3 },
-  towerIdle:   { src:'assets/sprites/redtower.png',       cols:8,  rows:1, frameW:137, frameH:140, totalFrames:8,  fps:6  },
+
+  necroIdle:   { src:'assets/sprites/necromancerIDLE.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:8,  offsetRow:0 },
+  necroAttack: { src:'assets/sprites/necromancerATTACK.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:10, offsetRow:2 },
+  necroHurt:   { src:'assets/sprites/necromancerHURT.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:8,  offsetRow:1 },
+  necroDeath:  { src:'assets/sprites/necromancerDEATH.png',    cols:5,  rows:4, frameW:128, frameH:140, totalFrames:5,  fps:8,  offsetRow:3 },
+
   golemIdle:   { src:'assets/sprites/Golem_1_idle.png',   cols:8,  rows:1, frameW:90,  frameH:64,  totalFrames:8,  fps:8  },
   golemAttack: { src:'assets/sprites/Golem_1_attack.png', cols:11, rows:1, frameW:90,  frameH:64,  totalFrames:11, fps:12 },
   golemHurt:   { src:'assets/sprites/Golem_1_hurt.png',   cols:4,  rows:1, frameW:90,  frameH:64,  totalFrames:4,  fps:10 },
   golemDie:    { src:'assets/sprites/Golem_1_die.png',    cols:13, rows:1, frameW:90,  frameH:64,  totalFrames:13, fps:10 },
+  
   bossIdle:    { src:'assets/sprites/wizard_idle.png',    cols:10, rows:1, frameW:80,  frameH:80,  totalFrames:10, fps:8  },
   bossAttack:  { src:'assets/sprites/wizard_attack.png',  cols:8,  rows:5, frameW:250, frameH:100, totalFrames:8,  fps:10 },
   bossDeath:   { src:'assets/sprites/wizard_death.png',   cols:10, rows:1, frameW:80,  frameH:80,  totalFrames:10, fps:8  },

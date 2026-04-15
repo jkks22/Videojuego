@@ -1,7 +1,9 @@
-//board.js: geometria hexagonal, tablero y renderizado (RF-01)
+//board.js: geometría hexagonal, estado del tablero, renderizado y generación del tablero enemigo
+//geometría hexagonal
 
-//geometria hex
+//devuelve el centro en píxeles de la celda (col, row) dentro del canvas
 function hexCenter(col, row) {
+  // Las filas impares se desplazan para crear el patrón entrelazado de hexágonos
   var offset = (row % 2 === 0) ? 0 : HEX_SIZE * 0.95;
   return {
     x: 36 + col * HEX_SIZE * 1.85 + offset,
@@ -9,9 +11,12 @@ function hexCenter(col, row) {
   };
 }
 
+//dibuja un hexágono sobre ctx con relleno, borde, etiqueta y opcionalmente brillo (glow)
 function hexDraw(ctx, cx, cy, size, fill, stroke, label, labelColor, glowColor) {
   ctx.save();
   if (glowColor) { ctx.shadowColor = glowColor; ctx.shadowBlur = 14; }
+
+  //construir el camino del hexágono usando seis vértices
   ctx.beginPath();
   for (var i = 0; i < 6; i++) {
     var a  = (Math.PI / 3) * i - Math.PI / 6;
@@ -20,20 +25,25 @@ function hexDraw(ctx, cx, cy, size, fill, stroke, label, labelColor, glowColor) 
     if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
   }
   ctx.closePath();
-  ctx.fillStyle = fill; ctx.fill();
+  ctx.fillStyle = fill;
+  ctx.fill();
   ctx.shadowBlur = 0;
-  ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
   ctx.restore();
 
+  //dibujar etiqueta centrada si se proporcionó
   if (label) {
-    ctx.fillStyle    = labelColor || '#EFF6FF';
-    ctx.font         = "bold 12px 'Exo 2',sans-serif";
-    ctx.textAlign    = 'center';
+    ctx.fillStyle = labelColor || '#EFF6FF';
+    ctx.font = "bold 12px 'Exo 2',sans-serif";
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(label, cx, cy);
   }
 }
 
+//retorna la celda de la grilla en la posición de canvas, o null si ninguna coincide
 function hexCellAt(px, py) {
   for (var r = 0; r < GRID_ROWS; r++)
     for (var c = 0; c < GRID_COLS; c++) {
@@ -44,6 +54,8 @@ function hexCellAt(px, py) {
   return null;
 }
 
+// Retorna las celdas vecinas válidas del hexágono en (col, row)
+// Las direcciones difieren entre filas pares e impares en coordenadas offset
 function hexNeighbors(col, row) {
   var dirs = (row % 2 === 0)
     ? [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1]]
@@ -57,10 +69,12 @@ function hexNeighbors(col, row) {
   return res;
 }
 
-//tablero
+//estado del tablero
+//grills 2D que guardan ids de piezas strings o null para celdas vacías
 var playerGrid = [];
-var enemyGrid  = [];
+var enemyGrid = [];
 
+//inicializa ambas grillas con celdas vacías null
 function boardInit() {
   playerGrid = []; enemyGrid = [];
   for (var r = 0; r < GRID_ROWS; r++) {
@@ -72,29 +86,41 @@ function boardInit() {
   }
 }
 
+//elimina todas las piezas de la grilla del lado indicado
 function boardClear(side) {
   var g = (side === 'enemy') ? enemyGrid : playerGrid;
   for (var r = 0; r < GRID_ROWS; r++)
     for (var c = 0; c < GRID_COLS; c++) g[r][c] = null;
 }
 
+//coloca un id de pieza en una celda específica
 function boardPlace(col, row, pieceId, side) {
   if (side === 'enemy') enemyGrid[row][col] = pieceId;
   else                  playerGrid[row][col] = pieceId;
 }
 
+//retorna el id de pieza (o null) en una celda específica
 function boardGet(col, row, side) {
   return (side === 'enemy') ? enemyGrid[row][col] : playerGrid[row][col];
 }
 
+//cuenta las celdas ocupadas en la grilla del lado indicado
 function boardCount(side) {
-  var g = (side === 'enemy') ? enemyGrid : playerGrid, n = 0;
+  var g = (side === 'enemy') ? enemyGrid : playerGrid;
+  var n = 0;
   for (var r = 0; r < GRID_ROWS; r++)
     for (var c = 0; c < GRID_COLS; c++) if (g[r][c]) n++;
   return n;
 }
 
-//renderizado del tablero (RF-01)
+//rederizado del tablero
+/**
+ * Renderiza el tablero hexagonal completo de un lado sobre un canvas.
+ * {string} canvasId id del canvas destino
+ * {string} side player o enemy
+ * {object} hoverCell celda a resaltar como previsualización de colocación (opcional)
+ * {Array} flashCells celdas a destellar en rojo (retroalimentación de ataque enemigo)
+ */
 function boardRender(canvasId, side, hoverCell, flashCells) {
   var canvas = getId(canvasId);
   if (!canvas) return;
@@ -105,7 +131,7 @@ function boardRender(canvasId, side, hoverCell, flashCells) {
   ctx.fillStyle = '#050810';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  //conexiones luminosas entre piezas compatibles
+  //dibujar líneas de conexión luminosas entre piezas compatibles adyacentes
   for (var r = 0; r < GRID_ROWS; r++)
     for (var c = 0; c < GRID_COLS; c++) {
       var pA = getPiece(grid[r][c]);
@@ -113,47 +139,58 @@ function boardRender(canvasId, side, hoverCell, flashCells) {
       hexNeighbors(c, r).forEach(function(v) {
         var pB = getPiece(grid[v.row][v.col]);
         if (!pB) return;
-        var ok =
+        //solo dibujar conexión si el par forma parte de la cadena de energía
+        var vinculados =
           (pA.type === TYPE_GEN   && pB.type === TYPE_TRANS) ||
           (pA.type === TYPE_TRANS && pB.type === TYPE_GEN)   ||
           (pA.type === TYPE_TRANS && pB.type === TYPE_CAT)   ||
           (pA.type === TYPE_CAT   && pB.type === TYPE_TRANS) ||
           (pA.type === TYPE_CAT   && pB.type === TYPE_ANCH)  ||
           (pA.type === TYPE_ANCH  && pB.type === TYPE_CAT);
-        if (!ok) return;
+        if (!vinculados) return;
+
         var d = hexCenter(c, r), h = hexCenter(v.col, v.row);
         ctx.save();
-        ctx.strokeStyle = TYPE_COLORS[pA.type]; ctx.lineWidth = 1.5;
+        ctx.strokeStyle = TYPE_COLORS[pA.type];
+        ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.5;
-        ctx.shadowColor = TYPE_COLORS[pA.type]; ctx.shadowBlur = 8;
-        ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(h.x, h.y); ctx.stroke();
+        ctx.shadowColor = TYPE_COLORS[pA.type];
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(h.x, h.y);
+        ctx.stroke();
         ctx.restore();
       });
     }
 
-  //hexagonos
+  //dibujar cada celda hexagonal
   for (var r = 0; r < GRID_ROWS; r++)
     for (var c = 0; c < GRID_COLS; c++) {
       var ctr   = hexCenter(c, r);
       var pieza = getPiece(grid[r][c]);
 
+      //verificar si esta celda debe destellar (retroalimentación de ataque enemigo)
       var esFlash = false;
       if (flashCells)
         for (var fi = 0; fi < flashCells.length; fi++)
           if (flashCells[fi].col === c && flashCells[fi].row === r) { esFlash = true; break; }
 
       var esHover = hoverCell && hoverCell.col === c && hoverCell.row === r && !pieza;
-      var fill    = pieza ? TYPE_COLORS[pieza.type] + '1A' : (esHover ? '#00E5C822' : '#050810');
-      var stroke  = pieza ? TYPE_COLORS[pieza.type]       : (esHover ? '#00E5C855' : '#1E3050');
-      var glow    = esFlash ? '#FF6B9D' : (pieza ? TYPE_COLORS[pieza.type] : null);
+      var fill = pieza ? TYPE_COLORS[pieza.type] + '1A' : (esHover ? '#00E5C822' : '#050810');
+      var stroke = pieza ? TYPE_COLORS[pieza.type] : (esHover ? '#00E5C855' : '#1E3050');
+      var glow = esFlash ? '#FF6B9D' : (pieza ? TYPE_COLORS[pieza.type] : null);
 
       hexDraw(ctx, ctr.x, ctr.y, HEX_SIZE - 2, fill, stroke,
         pieza ? TYPE_ICONS[pieza.type] : null,
         pieza ? TYPE_COLORS[pieza.type] : null,
         glow);
 
+      //superponer un relleno rojo semitransparente en celdas que destellan
       if (esFlash) {
-        ctx.save(); ctx.globalAlpha = 0.35; ctx.fillStyle = '#FF6B9D';
+        ctx.save();
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = '#FF6B9D';
         ctx.beginPath();
         for (var i = 0; i < 6; i++) {
           var a = (Math.PI / 3) * i - Math.PI / 6;
@@ -161,19 +198,25 @@ function boardRender(canvasId, side, hoverCell, flashCells) {
           var py = ctr.y + (HEX_SIZE - 2) * Math.sin(a);
           if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
         }
-        ctx.closePath(); ctx.fill(); ctx.restore();
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
       }
     }
 }
 
-//generacion del tablero enemigo
+//generación del tablero enemigo
+//rellena aleatoriamente la grill enemiga según el tipo de nodo y la zona actual
 function boardGenerateEnemy(zone, nodeType) {
   boardClear('enemy');
+
+  //los jefes reciben un tablero más lleno; los nodos de élite tienen más piezas de combate normal
   var cantidad = nodeType === 'boss' ? 14 : nodeType === 'elite' ? 10 : 6;
   var pool = CATALOG
     .filter(function(p) { return p.rarity <= Math.min(zone, 3); })
     .map(function(p) { return p.id; });
 
+  //mezclar todas las celdas y llenar las primeras cantidad con piezas aleatorias
   var celdas = [];
   for (var r = 0; r < GRID_ROWS; r++)
     for (var c = 0; c < GRID_COLS; c++) celdas.push({ col: c, row: r });
