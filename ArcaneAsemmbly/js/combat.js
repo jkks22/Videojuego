@@ -1,14 +1,15 @@
-//combat.js: logica de combate, resolucion y rondas de construccion
+//combat.js: lógica de resolución de combate, gestión de rondas y sistema RoundBuilder de colocación
 
-//combate
+//módulo Combat
 var Combat = {
-  running:      false,
-  buildRound:   1,
-  enemyHp:      0,
-  enemyMaxHp:   0,
-  currentEnemy: null,
-  playerShield: 0,
+  running: false,//true mientras se está resolviendo una ronda (bloquea interacción)
+  buildRound: 1,//número de ronda de construcción actual
+  enemyHp: 0,//HP actual del enemigo
+  enemyMaxHp: 0,//HP máximo del enemigo (para calcular porcentaje de barra)
+  currentEnemy: null,//datos del enemigo activo
+  playerShield: 0,//escudo acumulado del jugador en esta ronda
 
+  //configura un nuevo encuentro de combate — HP se escala por zona y tipo de nodo
   init: function(zone, nodeType) {
     var base = 22 + zone * 6;
     if (nodeType === 'elite') base = 45 + zone * 12;
@@ -26,19 +27,25 @@ var Combat = {
     this.updateImpulseUI();
   },
 
-  //resolucion del tablero
+  /**
+   * evalúa el tablero de un lado y retorna todas las salidas de combate
+   * orden de resolución: GEN->TRANS->CAT->ANCH
+   * {string} side  player o enemy
+   * return {{ damage, shield, reflect, synergyCount, catBonus }}
+   */
   resolveBoard: function(side) {
-    var grid    = (side === 'enemy') ? enemyGrid : playerGrid;
-    var dmg     = 0, shield = 0, reflect = 0, recursos = {};
+    var grid = (side === 'enemy') ? enemyGrid : playerGrid;
+    var dmg = 0, shield = 0, reflect = 0;
+    var recursos = {}; //mapa "col,row" -> energía producida por generadores
 
-    //GEN
+    //fase 1 — recolectar energía de todos los generadores
     for (var r = 0; r < GRID_ROWS; r++)
       for (var c = 0; c < GRID_COLS; c++) {
         var p = getPiece(grid[r][c]);
         if (p && p.type === TYPE_GEN) recursos[c + ',' + r] = p.output;
       }
 
-    //TRANS
+    //fase 2 — los transformadores consumen energía adyacente de generadores y producen daño
     for (var r = 0; r < GRID_ROWS; r++)
       for (var c = 0; c < GRID_COLS; c++) {
         var p = getPiece(grid[r][c]);
@@ -50,7 +57,8 @@ var Combat = {
         dmg += e * p.multiplier;
       }
 
-    //CAT
+    //fase 3 — los catalizadores amplifican el daño total
+    //bonus de sinergia cuando GEN y TRANS son ambos vecinos del catalizador
     var cat = 0, syn = 0;
     for (var r = 0; r < GRID_ROWS; r++)
       for (var c = 0; c < GRID_COLS; c++) {
@@ -64,17 +72,17 @@ var Combat = {
           if (vp && vp.type === TYPE_GEN)   tg = true;
           if (vp && vp.type === TYPE_TRANS) tt = true;
         });
-        if (tg && tt) { cat += 0.3; syn++; }
+        if (tg && tt) { cat += 0.3; syn++; } //bono de sinergia
       }
-    dmg *= (1 + cat);
+    dmg *= (1 + cat); //aplicar amplificación total al daño
 
-    //ANCH
+    //fase 4 — las anclas proveen escudo y porcentaje de reflejo
     for (var r = 0; r < GRID_ROWS; r++)
       for (var c = 0; c < GRID_COLS; c++) {
         var p = getPiece(grid[r][c]);
         if (!p || p.type !== TYPE_ANCH) continue;
-        if (p.shieldVal)  shield += p.shieldVal;
-        if (p.reflectPct) reflect = Math.max(reflect, p.reflectPct);
+        if (p.shieldVal)  shield  += p.shieldVal;
+        if (p.reflectPct) reflect  = Math.max(reflect, p.reflectPct); //se usa el mayor reflejo disponible
       }
 
     return {
@@ -86,40 +94,43 @@ var Combat = {
     };
   },
 
-  //Log
+  //agrega una entrada estilizada al registro de batalla
   log: function(msg, tipo) {
     var entries = getId('log-entries');
-    var div = document.createElement('div');
-    div.className = 'log-entry ' + (tipo || '') + ' fade-in';
+    var div     = document.createElement('div');
+    div.className   = 'log-entry ' + (tipo || '') + ' fade-in';
     div.textContent = msg;
     entries.appendChild(div);
     entries.parentElement.scrollTop = entries.parentElement.scrollHeight;
   },
 
-  //UI
+  //sincroniza la barra de HP del enemigo y el badge del tipo de nodo
   updateEnemyUI: function() {
     var pct = Math.max(0, this.enemyHp) / this.enemyMaxHp;
-    getId('e-hp').textContent = 'HP: ' + Math.max(0, this.enemyHp);
+    getId('e-hp').textContent     = 'HP: ' + Math.max(0, this.enemyHp);
     getId('e-hp-bar').style.width = (pct * 100) + '%';
 
     var node = State.currentNode;
     if (node) {
-      var nb = getId('node-badge');
+      var nb      = getId('node-badge');
       nb.textContent = node.type === 'boss' ? 'JEFE' : node.type === 'elite' ? 'ÉLITE' : 'COMBATE';
       nb.className   = 'node-badge' + (node.type === 'boss' ? ' boss' : node.type === 'elite' ? ' elite' : '');
     }
     if (this.currentEnemy) getId('enemy-name').textContent = this.currentEnemy.name;
   },
 
+  //sincroniza la barra de HP del jugador
   updatePlayerUI: function() {
     var pct = State.hp / State.maxHp;
-    getId('b-hp-bar').style.width = (pct * 100) + '%';
-    getId('b-hp-val').textContent = State.hp + '/' + State.maxHp;
+    getId('b-hp-bar').style.width  = (pct * 100) + '%';
+    getId('b-hp-val').textContent  = State.hp + '/' + State.maxHp;
     updateSpriteHP(pct, Math.max(0, this.enemyHp) / this.enemyMaxHp);
   },
 
+  //sincroniza los indicadores de puntos de impulso y el estado del botón
   updateImpulseUI: function() {
-    var dots = getId('b-impulse'); if (!dots) return;
+    var dots = getId('b-impulse');
+    if (!dots) return;
     dots.innerHTML = '';
     for (var i = 0; i < State.maxImpulse; i++) {
       var d = document.createElement('div');
@@ -133,6 +144,7 @@ var Combat = {
     }
   },
 
+  //actualiza la previsualización de daño/escudo bajo el tablero del jugador
   updatePreview: function() {
     var pr = this.resolveBoard('player');
     getId('p-dmg').textContent  = 'DMG: ' + pr.damage;
@@ -142,7 +154,7 @@ var Combat = {
     else                     syn.classList.add('hidden');
   },
 
-  //resolucion de ronda
+  //ejecuta una ronda de combate completa de forma asíncrona
   runRound: async function() {
     if (this.running) return;
     if (boardCount('player') === 0) { this.log('⚠ Coloca al menos una pieza.'); return; }
@@ -153,8 +165,10 @@ var Combat = {
     getId('round-num').textContent = this.buildRound;
     this.log('━━ RONDA ' + this.buildRound + ' ━━');
 
+    //animar los indicadores de fase para que el jugador pueda seguir la resolución
     var fases = ['FASE 1 — GENERADORES','FASE 2 — TRANSFORMADORES','FASE 3 — CATALIZADORES','FASE 4 — ANCLAS','FASE 5 — DAÑO FINAL'];
-    var phEl  = getId('phase-indicator'); phEl.classList.remove('hidden');
+    var phEl = getId('phase-indicator');
+    phEl.classList.remove('hidden');
     for (var i = 0; i < fases.length; i++) { phEl.textContent = fases[i]; await waitMs(280); }
     phEl.classList.add('hidden');
 
@@ -164,6 +178,7 @@ var Combat = {
     if (pr.damage > 0) this.log('⚡ Tu tablero genera ' + pr.damage + ' de daño', 'dmg');
     if (pr.shield > 0) this.log('🛡 Escudo: ' + pr.shield + ' pts', 'shld');
 
+    //activar efecto de sinergia si hay catalizadores con bonus
     if (pr.synergyCount > 0) {
       this.log('✦ x' + pr.synergyCount + ' Sinergia! +' + pr.catBonus + '% daño extra', 'syn');
       SFX.sinergia();
@@ -173,8 +188,11 @@ var Combat = {
     }
     await waitMs(280);
 
-    var er = this.resolveBoard('enemy'), incoming = er.damage;
+    //resolver el tablero enemigo para calcular el daño entrante
+    var er       = this.resolveBoard('enemy');
+    var incoming = er.damage;
 
+    //el escudo del jugador absorbe el daño entrante primero
     if (this.playerShield > 0) {
       var bl = Math.min(this.playerShield, incoming);
       incoming -= bl;
@@ -183,6 +201,7 @@ var Combat = {
       if (ps) { var rc2 = ps.getBoundingClientRect(); fxShield(rc2.left + rc2.width / 2, rc2.top + rc2.height / 2); }
     }
 
+    //el reflejo devuelve una porción del daño restante al enemigo
     if (pr.reflect > 0 && incoming > 0) {
       var ref = Math.round(incoming * pr.reflect);
       this.enemyHp -= ref;
@@ -190,20 +209,23 @@ var Combat = {
       this.updateEnemyUI();
     }
 
+    //ataque del jugador
     await new Promise(function(resolve) { playPlayerAttack(resolve); });
 
     if (pr.damage > 0) {
       this.enemyHp -= pr.damage;
-      spriteHit('enemy'); SFX.danoEnemigo();
+      spriteHit('enemy');
+      SFX.danoEnemigo();
 
+      //los enemigos no-jefe reproducen una animación de daño recibido
       var isBoss = false;
       if (Combat.currentEnemy)
         for (var i = 0; i < ENEMIES.boss.length; i++)
           if (ENEMIES.boss[i].name === Combat.currentEnemy.name) { isBoss = true; break; }
 
       if (enemyAnim && this.enemyHp > 0 && !isBoss) {
-        var hd  = State.zone <= 1 ? SPRITE_DEF.necroHurt  : SPRITE_DEF.golemHurt;
-        var id2 = State.zone <= 1 ? SPRITE_DEF.necroIdle  : SPRITE_DEF.golemIdle;
+        var hd  = State.zone <= 1 ? SPRITE_DEF.necroHurt: SPRITE_DEF.golemHurt;
+        var id2 = State.zone <= 1 ? SPRITE_DEF.necroIdle: SPRITE_DEF.golemIdle;
         enemyAnim.changeDef(hd, false, function() {
           setTimeout(function() { if (enemyAnim) enemyAnim.changeDef(id2, true); }, 80);
         });
@@ -213,10 +235,12 @@ var Combat = {
     }
     await waitMs(280);
 
+    //ataque del enemigo
     if (incoming > 0) {
       await new Promise(function(resolve) { playEnemyAttack(resolve); });
       State.hp = Math.max(0, State.hp - incoming);
-      spriteHit('player'); SFX.danoJugador();
+      spriteHit('player');
+      SFX.danoJugador();
       if (playerAnim && State.hp > 0)
         playerAnim.changeDef(SPRITE_DEF.damaged, false, function() {
           setTimeout(function() { if (playerAnim) playerAnim.changeDef(SPRITE_DEF.idle, true); }, 100);
@@ -225,9 +249,11 @@ var Combat = {
       showDmgPopup('-' + incoming, window.innerWidth * 0.27, window.innerHeight * 0.35);
     }
 
-    this.updateEnemyUI(); this.updatePlayerUI();
+    this.updateEnemyUI();
+    this.updatePlayerUI();
     updateSpriteHP(State.hp / State.maxHp, Math.max(0, this.enemyHp) / this.enemyMaxHp);
 
+    //destellos de las celdas del enemigo para mostrar su ataque, luego restaurar el tablero
     var fp = [];
     for (var r = 0; r < GRID_ROWS; r++)
       for (var c = 0; c < GRID_COLS; c++) if (enemyGrid[r][c]) fp.push({ col: c, row: r });
@@ -240,12 +266,13 @@ var Combat = {
     this.running = false;
     getId('round-badge').classList.add('hidden');
 
-    //victoria
+    //verificar victoria
     if (this.enemyHp <= 0) {
       await new Promise(function(resolve) { playEnemyDeath(resolve); });
       this.log('══ ¡VICTORIA! ══', 'vic');
       SFX.victoria();
       fxVictory(window.innerWidth / 2, window.innerHeight * 0.3);
+      //las anclas de regeneración curan al jugador tras ganar
       var regen = 0;
       for (var r = 0; r < GRID_ROWS; r++)
         for (var c = 0; c < GRID_COLS; c++) {
@@ -259,9 +286,10 @@ var Combat = {
       return;
     }
 
-    //derrota
+    //verificar derrota
     if (State.hp <= 0) {
-      this.log('══ DERROTA ══', 'def'); SFX.derrota();
+      this.log('══ DERROTA ══', 'def');
+      SFX.derrota();
       if (playerAnim) {
         await new Promise(function(resolve) {
           playerAnim.changeDef(SPRITE_DEF.death, false, function() { setTimeout(resolve, 400); });
@@ -271,29 +299,40 @@ var Combat = {
       return;
     }
 
+    //ambos sobrevivieron — iniciar la siguiente ronda de construcción
     this.buildRound++;
     this.log('── Enemigo sobrevive (' + Math.max(0, this.enemyHp) + ' HP). Nueva ronda ──', 'info');
     await waitMs(380);
+
+    //el enemigo reconfigura su tablero al inicio de cada nueva ronda
+    boardGenerateEnemy(State.zone, State.currentNode.type);
+    boardRender('enemyBoard', 'enemy');
     RoundBuilder.startBuildRound();
   },
 };
 
-//roundBuilder
+// módulo RoundBuilder
 var RoundBuilder = {
-  roundPieces: [],
-  placed: 0,
+  roundPieces: [], //piezas disponibles para colocar en esta ronda
+  placed:      0,  //cuántas piezas ha colocado el jugador hasta ahora
 
+  //configura una nueva ronda de construcción: limpia el tablero y reparte piezas nuevas
   startBuildRound: function() {
-    boardClear('player'); this.placed = 0;
+    boardClear('player');
+    this.placed = 0;
+
+    //pool = catálogo filtrado por rareza de zona + colección desbloqueada del jugador
     var pool = [];
     for (var i = 0; i < CATALOG.length; i++)
       if (CATALOG[i].rarity <= Math.min(State.zone, 3)) pool.push(CATALOG[i]);
     for (var i = 0; i < State.unlockedIds.length; i++) {
-      var p = getPiece(State.unlockedIds[i]); if (p) pool.push(p);
+      var p = getPiece(State.unlockedIds[i]);
+      if (p) pool.push(p);
     }
     this.roundPieces = [];
     for (var i = 0; i < PIECES_PER_ROUND; i++)
       this.roundPieces.push(pool[Math.floor(Math.random() * pool.length)]);
+
     this.renderPieces();
     this.updateLabels();
     Combat.updatePreview();
@@ -301,10 +340,13 @@ var RoundBuilder = {
     Combat.updateImpulseUI();
   },
 
+  //renderiza la grilla de tarjetas de pieza en el panel de inventario
   renderPieces: function() {
-    var grid = getId('piece-grid'); grid.innerHTML = '';
+    var grid = getId('piece-grid');
+    grid.innerHTML = '';
     for (var i = 0; i < this.roundPieces.length; i++) {
-      var p = this.roundPieces[i], card = document.createElement('div');
+      var p    = this.roundPieces[i];
+      var card = document.createElement('div');
       card.className = 'piece-card';
       card.innerHTML =
         '<span class="pc-icon" style="color:' + TYPE_COLORS[p.type] + '">' + TYPE_ICONS[p.type] + '</span>' +
@@ -312,7 +354,7 @@ var RoundBuilder = {
         '<span class="pc-type ' + p.type + '">' + TYPE_LABELS[p.type] + '</span></div>' +
         '<span class="pc-rarity">' + RARITIES[p.rarity] + '</span>';
       (function(idx, piece, c) {
-        c.addEventListener('click',      function() { BattleUI.selectPiece(idx, c); });
+        c.addEventListener('click', function() { BattleUI.selectPiece(idx, c); });
         c.addEventListener('mouseenter', function(e) { Tooltip.show(e, piece); });
         c.addEventListener('mouseleave', function() { Tooltip.hide(); });
       })(i, p, card);
@@ -320,28 +362,34 @@ var RoundBuilder = {
     }
   },
 
+  //actualiza la etiqueta de ronda y el contador de piezas restantes
   updateLabels: function() {
-    getId('build-lbl').textContent   = 'Ronda ' + Combat.buildRound + ' — Coloca tus ' + PIECES_PER_ROUND + ' piezas';
+    getId('build-lbl').textContent = 'Ronda ' + Combat.buildRound + ' — Coloca tus ' + PIECES_PER_ROUND + ' piezas';
     getId('pieces-left').textContent = (PIECES_PER_ROUND - this.placed) + ' restantes';
   },
 
+  //se llama cuando una pieza es colocada exitosamente en el tablero
   markPlaced: function(index) {
     this.placed++;
     var cards = getId('piece-grid').querySelectorAll('.piece-card');
     if (cards[index]) cards[index].classList.add('used');
     this.updateLabels();
     Combat.updatePreview();
+    //resolver automáticamente cuando todas las piezas han sido colocadas
     if (this.placed >= PIECES_PER_ROUND) {
       Combat.log('✓ 5 piezas — resolviendo...', 'info');
       setTimeout(function() { Combat.runRound(); }, 500);
     }
   },
 
+  //agrega una pieza extra a la mano (se activa al gastar una carga de impulso)
   addExtraPiece: function() {
     var pool  = CATALOG.filter(function(p) { return p.rarity <= Math.min(State.zone, 3); });
     var extra = pool[Math.floor(Math.random() * pool.length)];
     this.roundPieces.push(extra);
-    var grid = getId('piece-grid'), card = document.createElement('div'), idx = this.roundPieces.length - 1;
+    var grid  = getId('piece-grid');
+    var card  = document.createElement('div');
+    var idx   = this.roundPieces.length - 1;
     card.className = 'piece-card fade-in';
     card.innerHTML =
       '<span class="pc-icon" style="color:' + TYPE_COLORS[extra.type] + '">' + TYPE_ICONS[extra.type] + '</span>' +
