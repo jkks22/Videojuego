@@ -27,10 +27,57 @@ var Game = {
   },
 
   renderMap: function() {
-    var self = this, cont = getId('map-container');
-    cont.innerHTML = '';
-    cont.appendChild(renderMap(State.mapNodes, function(node) { self.enterNode(node); }));
-  },
+  var self = this, cont = getId('map-container');
+  cont.innerHTML = '';
+
+  // Destruir player anterior si existe
+  if (typeof MapPlayer !== 'undefined') MapPlayer.destroy();
+
+  // Renderizar los nodos del mapa
+  cont.appendChild(renderMap(State.mapNodes, function(node) {
+    self._onNodeClick(node);
+  }));
+
+  // Buscar el nodo de inicio accesible para posicionar el player
+  var startNode = null;
+  for (var i = 0; i < State.mapNodes.length; i++) {
+    if (State.mapNodes[i].accessible && !State.mapNodes[i].completed) {
+      startNode = State.mapNodes[i];
+      break;
+    }
+  }
+  if (!startNode && State.mapNodes.length > 0) startNode = State.mapNodes[0];
+
+  // Inicializar el sprite del protagonista sobre el mapa
+  if (typeof MapPlayer !== 'undefined') {
+    MapPlayer.init(cont, startNode);
+  }
+},
+
+//intercepta el clic en un nodo: mueve primero el sprite, luego entra
+_onNodeClick: function(node) {
+  if (!node.accessible || node.completed) return;
+
+  // Guardar el nodo destino para que MapPlayer lo dispare al llegar
+  State.currentNode = node;
+
+  if (typeof MapPlayer !== 'undefined' && MapPlayer.loaded) {
+    MapPlayer.currentNodeId = node.id;
+    MapPlayer.moveTo(node);
+    // enterNode se llama desde MapPlayer._update() al llegar
+  } else {
+    // Fallback sin sprite
+    this.enterNode(node);
+  }
+},
+
+// Ya NO asignar State.currentNode aquí, lo hace _onNodeClick
+enterNode: function(node) {
+  if (node.type === 'shop')  { Shop.show(State.zone);  return; }
+  if (node.type === 'event') { Events.trigger();        return; }
+  showScreen('screen-battle');
+  BattleUI.setup(node);
+},
 
   //actualiza todos los elementos del HUD en la pantalla de mapa
   updateHUD: function() {
