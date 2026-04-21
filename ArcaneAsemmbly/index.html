@@ -118,6 +118,10 @@
 
       <!--log y controles del centro-->
       <div class="arena-center">
+        <div id="last-event" class="last-event-banner hidden">
+          <div class="le-label">ÚLTIMO EVENTO</div>
+          <div id="le-text" class="le-text"></div>
+        </div>
         <div id="battle-log" class="battle-log">
           <div class="log-hdr">— REGISTRO —</div>
           <div id="log-entries"></div>
@@ -230,6 +234,8 @@
     <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5" onchange="Game.setVolume(this.value)">
     <p> Volumen de SFX</p>
     <input type="range" id="sfx-slider" min="0" max="1" step="0.01" value="0.5" onchange="Game.setSFXVolume(this.value)"> 
+    <p>Tutorial</p>
+    <button class="btn-ghost" onclick="Tutorial.open()">📖 VER TUTORIAL</button>
     <button class="btn-primary" onclick="showScreen('screen-title')">⬅ VOLVER</button>
   </div>
 </div>
@@ -245,6 +251,32 @@
   <!--canvas fx-->
   <canvas id="fx-canvas"></canvas>
 
+  <!--overlay del tutorial para nuevos jugadores-->
+  <div id="tutorial-overlay" class="tutorial-overlay hidden">
+    <div class="tutorial-card">
+      <div class="tutorial-step-counter">
+        <span id="tut-step-num">1</span> / <span id="tut-step-total">6</span>
+      </div>
+      <div class="tutorial-icon" id="tut-icon">⚡</div>
+      <h2 class="tutorial-title" id="tut-title">BIENVENIDO</h2>
+      <div class="tutorial-body" id="tut-body"></div>
+      <div id="tut-chain" class="tutorial-chain hidden">
+        <div class="chain-piece gen">⚡<span>GEN</span></div>
+        <div class="chain-arrow">→</div>
+        <div class="chain-piece trans">⚙<span>TRANS</span></div>
+        <div class="chain-arrow">→</div>
+        <div class="chain-piece cat">✦<span>CAT</span></div>
+        <div class="chain-arrow">→</div>
+        <div class="chain-piece anch">⬡<span>ANCH</span></div>
+      </div>
+      <div class="tutorial-nav">
+        <button id="tut-prev" class="btn-ghost" onclick="Tutorial.prev()">◀ Anterior</button>
+        <button id="tut-skip" class="btn-ghost" onclick="Tutorial.close()">Saltar tutorial</button>
+        <button id="tut-next" class="btn-primary" onclick="Tutorial.next()">Siguiente ▶</button>
+      </div>
+    </div>
+  </div>
+
   <script src="js/constants.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/fx.js"></script>
@@ -253,6 +285,7 @@
   <script src="js/combat.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/api.js"></script>
+  <script src="js/tutorial.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>
