@@ -1,6 +1,6 @@
 //game.js: controlador principal del juego: inicialización de runs, flujo del mapa y condiciones de victoria/derrota
 
-var Game = {
+const Game = {
   //inicia una run nueva: reinicia todo el estado, genera el mapa de zona 1 y lo muestra
   startRun: function() {
     State.run++;
@@ -17,6 +17,9 @@ var Game = {
     this.buildMap(1);
     showScreen('screen-map');
     this.updateHUD();
+    if (typeof Tutorial !== 'undefined' && Tutorial.shouldShowOnFirstRun()) {
+      Tutorial.open();
+    }
   },
 
   //genera los nodos para la zona indicada y los renderiza en el mapa
@@ -27,7 +30,8 @@ var Game = {
   },
 
   renderMap: function() {
-    var self = this, cont = getId('map-container');
+    const self = this;
+    const cont = getId('map-container');
     cont.innerHTML = '';
     cont.appendChild(renderMap(State.mapNodes, function(node) { self.enterNode(node); }));
   },
@@ -41,9 +45,10 @@ var Game = {
     getId('piece-count').textContent = State.unlockedIds.length;
 
     //redibujar los puntos de impulso
-    var dots = getId('impulse-dots'); dots.innerHTML = '';
-    for (var i = 0; i < State.maxImpulse; i++) {
-      var d = document.createElement('div');
+    const dots = getId('impulse-dots');
+    dots.innerHTML = '';
+    for (let i = 0; i < State.maxImpulse; i++) {
+      const d = document.createElement('div');
       d.className = 'impulse-dot' + (i < State.impulse ? '' : ' empty');
       dots.appendChild(d);
     }
@@ -60,12 +65,12 @@ var Game = {
 
   //se llama al ganar un combate: marca el nodo, desbloquea hijos, avanza o termina
   afterCombatVictory: function() {
-    var node = State.currentNode;
+    const node = State.currentNode;
     if (node) {
       node.completed = true;
       //hacer accesibles los nodos hijos para que el jugador pueda elegir su ruta
-      for (var i = 0; i < (node.children || []).length; i++)
-        for (var j = 0; j < State.mapNodes.length; j++)
+      for (let i = 0; i < (node.children || []).length; i++)
+        for (let j = 0; j < State.mapNodes.length; j++)
           if (State.mapNodes[j].id === node.children[i]) { State.mapNodes[j].accessible = true; break; }
     }
 
@@ -76,11 +81,12 @@ var Game = {
         getId('event-icon').textContent  = '🏆';
         getId('event-title').textContent = 'ZONA ' + State.zone + ' COMPLETADA';
         getId('event-text').textContent  = 'El Pliegue se abre hacia la Zona ' + (State.zone + 1) + '.';
-        var ch  = getId('event-choices'); ch.innerHTML = '';
-        var btn = document.createElement('button');
+        const ch  = getId('event-choices');
+        ch.innerHTML = '';
+        const btn = document.createElement('button');
         btn.className = 'event-btn';
         btn.innerHTML = 'Avanzar a Zona ' + (State.zone + 1) + ' →<span class="ec-effect">Continúa el viaje</span>';
-        var self = this;
+        const self = this;
         btn.addEventListener('click', function() {
           self.buildMap(State.zone + 1);
           self.updateHUD();
@@ -102,18 +108,18 @@ var Game = {
   },
 
   afterDraft: function() { this.updateHUD(); this.renderMap(); showScreen('screen-map'); },
-  skipDraft: function() { this.afterDraft(); },
+  skipDraft: function()  { this.afterDraft(); },
 
   //HP del jugador llegó a 0 mostrar pantalla de game over
   gameOver: function() {
-    getId('go-icon').textContent = '💀';
+    getId('go-icon').textContent  = '💀';
     getId('go-title').textContent = 'RUN TERMINADA';
-    getId('go-sub').textContent = 'Zona ' + State.zone + ' · ' + (Combat.currentEnemy ? Combat.currentEnemy.name : '?');
+    getId('go-sub').textContent   = 'Zona ' + State.zone + ' · ' + (Combat.currentEnemy ? Combat.currentEnemy.name : '?');
     this.showStats();
     showScreen('screen-gameover');
   },
 
-  //llena la grill de estadísticas en la pantalla de game over / victoria
+  //llena la grilla de estadísticas en la pantalla de game over / victoria
   showStats: function() {
     getId('go-stats').innerHTML =
       '<div class="go-stat"><span class="go-stat-v">' + State.zone + '</span><span class="go-stat-l">ZONA</span></div>' +
@@ -123,31 +129,36 @@ var Game = {
   },
 
   restartToTitle: function() { showScreen('screen-title'); },
+
+  setVolume:    function(v) { SFX.setVol(parseFloat(v)); },
+  setSFXVolume: function(v) { SFX.setVol(parseFloat(v)); },
 };
 
 //construye el fondo animado de polígonos hexagonales de la pantalla de título
 function buildTitleHexBackground() {
-  var cont = getId('hexBg'); if (!cont) return;
-  var ns   = 'http://www.w3.org/2000/svg'; //se utiliza como un identificador único para diferenciar
+  const cont = getId('hexBg'); if (!cont) return;
+  const ns   = 'http://www.w3.org/2000/svg'; //se utiliza como un identificador único para diferenciar
   //los gráficos vectoriales de otros elementos HTML o XML y para crear elementos SVG con createElementNS
   //en este caso se usa para construir el fondo animado de la pantalla de título con hexágonos generados
-  var svg  = document.createElementNS(ns, 'svg');
+  const svg  = document.createElementNS(ns, 'svg');
   svg.setAttribute('width', '100%');
   svg.setAttribute('height', '100%');
 
-  for (var r = 0; r < 10; r++)
-    for (var c = 0; c < 18; c++) {
-      var offset = (r % 2 === 0) ? 0 : 48 * 0.9;
-      var cx = c * 48 * 1.8 + offset, cy = r * 48 * 1.55;
-      var poly = document.createElementNS(ns, 'polygon'), pts = [];
-      for (var i = 0; i < 6; i++) {
-        var a = (Math.PI / 3) * i - Math.PI / 6;
+  for (let r = 0; r < 10; r++)
+    for (let c = 0; c < 18; c++) {
+      const offset = (r % 2 === 0) ? 0 : 48 * 0.9;
+      const cx     = c * 48 * 1.8 + offset;
+      const cy     = r * 48 * 1.55;
+      const poly   = document.createElementNS(ns, 'polygon');
+      const pts    = [];
+      for (let i = 0; i < 6; i++) {
+        const a = (Math.PI / 3) * i - Math.PI / 6;
         pts.push((cx + 44 * Math.cos(a)).toFixed(1) + ',' + (cy + 44 * Math.sin(a)).toFixed(1));
       }
       poly.setAttribute('points', pts.join(' '));
       poly.setAttribute('fill', 'none');
       //selecciona aleatoriamente una pequeña fracción de hexágonos con color
-      var rnd = Math.random();
+      const rnd = Math.random();
       poly.setAttribute('stroke', rnd < 0.06 ? '#00E5C833' : rnd < 0.1 ? '#FFD16622' : '#1E305015');
       svg.appendChild(poly);
     }
@@ -167,4 +178,3 @@ document.addEventListener('DOMContentLoaded', function() {
   buildTitleHexBackground();
   showScreen('screen-title');
 });
-
