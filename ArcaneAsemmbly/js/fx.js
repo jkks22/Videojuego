@@ -1,9 +1,9 @@
 //fx.js: sistema de partículas y efectos visuales dibujados sobre un canvas de pantalla completa
 
-var fxCanvas    = null;
-var fxCtx       = null;
-var fxParticles = [];  //lista activa de partículas en pantalla
-var fxRafId     = null;
+let fxCanvas    = null;
+let fxCtx       = null;
+const fxParticles = [];  //lista activa de partículas en pantalla
+let fxRafId     = null;
 
 //inicializa el canvas de efectos y arranca el loop de animación
 function fxInit() {
@@ -29,8 +29,8 @@ function fxLoop() {
   fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
 
   //actualizar y dibujar cada partícula; eliminar las que expiraron
-  for (var i = fxParticles.length - 1; i >= 0; i--) {
-    var p = fxParticles[i];
+  for (let i = fxParticles.length - 1; i >= 0; i--) {
+    const p = fxParticles[i];
     p.x  += p.vx;
     p.y  += p.vy;
     p.vy += 0.06; //gravedad simulada
@@ -51,16 +51,16 @@ function fxLoop() {
 
 //agrega un lote de objetos partícula al pool activo
 function fxSpawn(lista) {
-  for (var i = 0; i < lista.length; i++) fxParticles.push(lista[i]);
+  for (let i = 0; i < lista.length; i++) fxParticles.push(lista[i]);
 }
 
 //explosión multicolor, se activa cuando se detecta una sinergia en el tablero
 function fxSynergy(x, y) {
-  var cols = ['#FFD166', '#9B72CF', '#00E5C8'];
-  var ps   = [];
-  for (var i = 0; i < 28; i++) {
-    var a = (Math.PI * 2 / 28) * i + Math.random() * 0.3;
-    var v = 1.5 + Math.random() * 2.5;
+  const cols = ['#FFD166', '#9B72CF', '#00E5C8'];
+  const ps   = [];
+  for (let i = 0; i < 28; i++) {
+    const a = (Math.PI * 2 / 28) * i + Math.random() * 0.3;
+    const v = 1.5 + Math.random() * 2.5;
     ps.push({
       x: x, y: y,
       vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1.5,
@@ -74,9 +74,9 @@ function fxSynergy(x, y) {
 
 //pequeña explosión azul-verde, se activa cuando el escudo absorbe daño
 function fxShield(x, y) {
-  var ps = [];
-  for (var i = 0; i < 14; i++) {
-    var a = Math.random() * Math.PI * 2;
+  const ps = [];
+  for (let i = 0; i < 14; i++) {
+    const a = Math.random() * Math.PI * 2;
     ps.push({
       x: x + (Math.random() - 0.5) * 30,
       y: y + (Math.random() - 0.5) * 30,
@@ -91,11 +91,11 @@ function fxShield(x, y) {
 
 //gran explosión de confeti colorido, se activa al ganar un combate
 function fxVictory(cx, cy) {
-  var cols = ['#FFD166', '#00E5C8', '#9B72CF', '#FF6B9D', '#56CFB2'];
-  var ps   = [];
-  for (var i = 0; i < 50; i++) {
-    var a = Math.random() * Math.PI * 2;
-    var v = 2 + Math.random() * 4;
+  const cols = ['#FFD166', '#00E5C8', '#9B72CF', '#FF6B9D', '#56CFB2'];
+  const ps   = [];
+  for (let i = 0; i < 50; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const v = 2 + Math.random() * 4;
     ps.push({
       x: cx, y: cy,
       vx: Math.cos(a) * v, vy: Math.sin(a) * v - 3,

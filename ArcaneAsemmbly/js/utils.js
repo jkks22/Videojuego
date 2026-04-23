@@ -1,7 +1,7 @@
 //utils.js: Estado global del juego, funciones auxiliares de DOM y sistema de audio procedural (SFX).
 
 //estado global único compartido por todos los módulos del juego
-var State = {
+const State = {
   run: 1,//número de run actual
   hp: 100,//HP actual del jugador
   maxHp: 100,//HP máximo del jugador
@@ -40,7 +40,7 @@ function waitMs(ms) {
 
 //busca y devuelve la definición de pieza por id dentro del CATALOG
 function getPiece(id) {
-  for (var i = 0; i < CATALOG.length; i++) {
+  for (let i = 0; i < CATALOG.length; i++) {
     if (CATALOG[i].id === id) return CATALOG[i];
   }
   return null;
@@ -48,14 +48,14 @@ function getPiece(id) {
 
 //oculta todas las pantallas y muestra únicamente la indicada
 function showScreen(id) {
-  var all = document.querySelectorAll('.screen');
-  for (var i = 0; i < all.length; i++) all[i].classList.remove('active');
+  const all = document.querySelectorAll('.screen');
+  for (let i = 0; i < all.length; i++) all[i].classList.remove('active');
   getId(id).classList.add('active');
 }
 
 //muestra un número de daño flotante en las coordenadas de pantalla (x, y)
 function showDmgPopup(text, x, y) {
-  var el = getId('dmg-popup');
+  const el = getId('dmg-popup');
   el.textContent = text;
   el.className   = 'dmg-popup';
   el.style.left  = x + 'px';
@@ -68,9 +68,9 @@ function showDmgPopup(text, x, y) {
 }
 
 //sistema de efectos de sonido procedurales usando Web Audio API
-var SFX = (function() {
-  var ctx = null;
-  var vol = 0.5;
+const SFX = (function() {
+  let ctx = null;
+  let vol = 0.5;
 
   //crea el AudioContext de forma diferida (requiere gesto del usuario por política del navegador)
   function ac() {
@@ -81,9 +81,9 @@ var SFX = (function() {
   //reproduce un tono oscilador simple: frecuencia, duración en segundos, forma de onda y ganancia
   function tono(freq, dur, tipo, g) {
     try {
-      var c    = ac();
-      var osc  = c.createOscillator();
-      var gain = c.createGain();
+      const c = ac();
+      const osc = c.createOscillator();
+      const gain = c.createGain();
       osc.connect(gain);
       gain.connect(c.destination);
       osc.type = tipo || 'sine';
@@ -98,12 +98,12 @@ var SFX = (function() {
   //reproduce ruido blanco corto para sonidos de impacto
   function ruido(dur, g) {
     try {
-      var c = ac();
-      var buf = c.createBuffer(1, c.sampleRate * dur, c.sampleRate);
-      var d = buf.getChannelData(0);
-      for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      var src = c.createBufferSource();
-      var gain = c.createGain();
+      const c = ac();
+      const buf = c.createBuffer(1, c.sampleRate * dur, c.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      const src = c.createBufferSource();
+      const gain = c.createGain();
       src.buffer = buf;
       src.connect(gain);
       gain.connect(c.destination);

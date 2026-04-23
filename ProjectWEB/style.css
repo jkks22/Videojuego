@@ -1,0 +1,306 @@
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #fff8f0;
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+
+#miNavbar {
+  background-color: #ffede0;
+  border-bottom: 2px solid #f4a97f;
+  padding: 10px 0;
+}
+
+#miNavbar .navbar-brand {
+  font-family: 'Pacifico', cursive;
+  font-size: 1.5rem;
+  color: #d45f2e;
+}
+
+#miNavbar .nav-link {
+  color: #555;
+  font-weight: 600;
+  margin: 0 5px;
+  transition: color 0.3s;
+}
+
+#miNavbar .nav-link:hover {
+  color: #d45f2e;
+}
+
+.hero-section {
+  background: linear-gradient(135deg, #ffede0, #ffd6c0);
+  padding: 100px 20px 80px;
+}
+
+.titulo-principal {
+  font-family: 'Pacifico', cursive;
+  font-size: 3.5rem;
+  color: #d45f2e;
+  /*animacioon 1: aparece cayendo desde arriba */
+  animation: bajarTitulo 0.8s ease-out;
+}
+
+.subtitulo {
+  font-size: 1.2rem;
+  color: #666;
+  margin-top: 10px;
+}
+
+.descripcion-hero {
+  font-size: 1rem;
+  color: #888;
+  margin-top: 15px;
+  line-height: 1.8;
+}
+
+.btn-rosa {
+  background-color: #f4a97f;
+  color: white;
+  border: none;
+  padding: 10px 30px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: background-color 0.3s, transform 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-rosa:hover {
+  background-color: #d45f2e;
+  color: white;
+  transform: scale(1.05);
+}
+
+.seccion {
+  padding: 70px 20px;
+}
+
+.titulo-seccion {
+  font-family: 'Pacifico', cursive;
+  font-size: 2rem;
+  color: #d45f2e;
+  margin-bottom: 10px;
+}
+
+.texto-gris {
+  color: #888;
+  font-size: 0.95rem;
+}
+
+.btn-dia {
+  background-color: white;
+  border: 2px solid #f4a97f;
+  color: #d45f2e;
+  padding: 8px 16px;
+  margin: 4px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.btn-dia:hover {
+  background-color: #f4a97f;
+  color: white;
+}
+
+.btn-dia.activo {
+  background-color: #d45f2e;
+  color: white;
+  border-color: #d45f2e;
+}
+
+.tarjeta-menu {
+  background-color: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  transition: transform 0.3s;
+  height: 100%;
+}
+
+.tarjeta-menu:hover {
+  transform: translateY(-5px);
+}
+
+.contenedor-img-menu {
+  position: relative;
+  height: 180px;
+  background-color: #ffede0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/*emoji visible por defecto, imagen oculta */
+.emoji-menu {
+  font-size: 4rem;
+  position: absolute;
+  transition: opacity 0.3s;
+  user-select: none;
+}
+
+.img-menu {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0; left: 0;
+  opacity: 0;
+  transition: opacity 0.4s, transform 0.4s;
+}
+
+/*al hacer hover: muestra imagen, oculta emoji */
+.tarjeta-menu:hover .img-menu {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.tarjeta-menu:hover .emoji-menu {
+  opacity: 0;
+}
+
+.cuerpo-tarjeta {
+  padding: 15px;
+}
+
+.categoria-item {
+  font-size: 0.75rem;
+  color: #f4a97f;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.nombre-item {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.desc-item {
+  font-size: 0.85rem;
+  color: #888;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.precio-item {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #d45f2e;
+}
+
+.seccion-gatos {
+  background-color: #fff0e6;
+}
+
+.tarjeta-gato {
+  background-color: white;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.09);
+  transition: transform 0.3s;
+  height: 100%;
+}
+
+/*animacion 2: latido al hacer hover*/
+.tarjeta-gato:hover {
+  animation: latido 0.5s ease;
+}
+
+.gato-img-wrap {
+  overflow: hidden;
+  height: 220px;
+}
+
+.img-gato {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s;
+}
+
+.tarjeta-gato:hover .img-gato {
+  transform: scale(1.06);
+}
+
+.info-gato {
+  padding: 16px 18px 18px;
+}
+
+.info-gato h3 {
+  font-family: 'Pacifico', cursive;
+  font-size: 1.2rem;
+  color: #d45f2e;
+  margin-bottom: 8px;
+}
+
+.info-gato p {
+  font-size: 0.88rem;
+  color: #666;
+  margin-bottom: 5px;
+  line-height: 1.5;
+}
+
+.seccion-contacto {
+  background-color: #d45f2e;
+  color: white;
+}
+
+.seccion-contacto .titulo-seccion {
+  color: white;
+}
+
+.seccion-contacto .texto-gris {
+  color: rgba(255,255,255,0.8);
+}
+
+.caja-contacto {
+  background-color: rgba(255,255,255,0.15);
+  border-radius: 14px;
+  padding: 25px 30px;
+  text-align: left;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+.caja-contacto p {
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+  color: white;
+}
+
+.pie-pagina {
+  background-color: #2e2e2e;
+  color: rgba(255,255,255,0.6);
+  padding: 20px;
+  font-size: 0.85rem;
+}
+
+/*animacion 1: titulo cae desde arriba al cargar la pagina */
+@keyframes bajarTitulo {
+  from {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/*animacion 2:latido en tarjetas de gatos al hacer hover*/
+@keyframes latido {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.05); }
+  60%  { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}

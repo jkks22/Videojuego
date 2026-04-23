@@ -1,18 +1,19 @@
+
 //api.js: módulo de comunicación entre el cliente del juego y la API REST del servidor.
 //todas las llamadas son opcionales: si el jugador no está autenticado, se omiten
 
-var API = (function () {
+const API = (function () {
 
-  var BASE = '/api'; //ruta base de la API
-  var _token = null; //JWT del usuario autenticado
-  var _runId  = null; //ID de la run activa en base de datos
-  var _nodoId = null; //ID del nodo actual en base de datos
-  var _combateId = null; //ID del combate activo en base de datos
-  var _ronda = 1; //contador de ronda para el registro de colocaciones
+  const BASE = '/api'; //ruta base de la API
+  let _token = null; //JWT del usuario autenticado
+  let _runId = null; //ID de la run activa en base de datos
+  let _nodoId = null; //ID del nodo actual en base de datos
+  let _combateId = null; //ID del combate activo en base de datos
+  let _ronda = 1; //contador de ronda para el registro de colocaciones
 
   //construye los headers HTTP, incluyendo el token si el usuario está autenticado
   function headers() {
-    var h = { 'Content-Type': 'application/json' };
+    const h = { 'Content-Type': 'application/json' };
     if (_token) h['Authorization'] = 'Bearer ' + _token;
     return h;
   }

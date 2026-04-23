@@ -1,0 +1,17 @@
+# dependencias de Node.js — nunca subir al repo
+node_modules/
+
+# variables de entorno — contienen contraseñas y secretos
+.env
+
+# archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
+npm-debug.log*
+
+# carpetas de build
+dist/
+build/

@@ -1,23 +1,23 @@
 //constants.js: constantes globales, catálogo de piezas, enemigos, eventos y sprites.
 
 //dimensiones del tablero hexagonal y límites de jugabilidad
-var GRID_COLS        = 5;
-var GRID_ROWS        = 5;
-var HEX_SIZE         = 32;
-var CANVAS_W         = 340;
-var CANVAS_H         = 340;
-var PIECES_PER_ROUND = 5;   //piezas que el jugador coloca por ronda
-var SHOP_USES_MAX    = 2;   //veces máximas que se puede usar la tienda por run
-var EVENT_USES_MAX   = 3;   //eventos máximos por run
+const GRID_COLS        = 5;
+const GRID_ROWS        = 5;
+const HEX_SIZE         = 48;
+const CANVAS_W         = 500;
+const CANVAS_H         = 500;
+const PIECES_PER_ROUND = 5;   //piezas que el jugador coloca por ronda
+const SHOP_USES_MAX    = 2;   //veces máximas que se puede usar la tienda por run
+const EVENT_USES_MAX   = 3;   //eventos máximos por run
 
 //identificadores internos de tipo de pieza
-var TYPE_GEN   = 'generator';
-var TYPE_TRANS = 'transformer';
-var TYPE_CAT   = 'catalyst';
-var TYPE_ANCH  = 'anchor';
+const TYPE_GEN   = 'generator';
+const TYPE_TRANS = 'transformer';
+const TYPE_CAT   = 'catalyst';
+const TYPE_ANCH  = 'anchor';
 
 //color de visualización por tipo de pieza
-var TYPE_COLORS = {
+const TYPE_COLORS = {
   generator:   '#00E5C8',
   transformer: '#FFD166',
   catalyst:    '#9B72CF',
@@ -25,7 +25,7 @@ var TYPE_COLORS = {
 };
 
 //icono emoji por tipo de pieza
-var TYPE_ICONS = {
+const TYPE_ICONS = {
   generator:   '⚡',
   transformer: '⚙',
   catalyst:    '✦',
@@ -33,7 +33,7 @@ var TYPE_ICONS = {
 };
 
 //etiqueta de texto por tipo de pieza
-var TYPE_LABELS = {
+const TYPE_LABELS = {
   generator:   'GENERADOR',
   transformer: 'TRANSFORMADOR',
   catalyst:    'CATALIZADOR',
@@ -41,12 +41,12 @@ var TYPE_LABELS = {
 };
 
 // Nombres y colores de rareza (índice 0 = común … 4 = legendaria)
-var RARITIES      = ['común', 'poco común', 'rara', 'épica', 'legendaria'];
-var RARITY_COLORS = ['#6B7FA3', '#56CFB2', '#9B72CF', '#FFD166', '#FF6B9D'];
+const RARITIES      = ['común', 'poco común', 'rara', 'épica', 'legendaria'];
+const RARITY_COLORS = ['#6B7FA3', '#56CFB2', '#9B72CF', '#FFD166', '#FF6B9D'];
 
 //catálogo completo de piezas del juego
 //cada pieza tiene: id único, nombre, tipo, estadística principal, rareza y descripción
-var CATALOG = [
+const CATALOG = [
   { id:'gen_e', name:'Cristal de Energía',      type:TYPE_GEN,   output:2,           rarity:0, desc:'Genera 2 unidades de energía base.' },
   { id:'gen_h', name:'Núcleo Térmico',           type:TYPE_GEN,   output:3,           rarity:1, desc:'Genera 3 unidades de calor arcano.' },
   { id:'gen_p', name:'Emisor de Pulso',          type:TYPE_GEN,   output:4,           rarity:2, desc:'Genera 4 unidades de pulso arcano.' },
@@ -65,7 +65,7 @@ var CATALOG = [
 ];
 
 //enemigos agrupados por tipo de nodo del mapa
-var ENEMIES = {
+const ENEMIES = {
   combat: [
     { name:'Guardián Arcano',    build:'mixed',   flavorText:'Sus redes de energía pulsan en sintonía.' },
     { name:'Autómata de Cobre',  build:'tanky',   flavorText:'Cubierto de anclas, difícil de penetrar.' },
@@ -85,7 +85,7 @@ var ENEMIES = {
 
 //conjunto de eventos aleatorios que aparecen en nodos de tipo "event"
 //cada evento tiene: icono, título, texto narrativo y arreglo de opciones con su efecto mecánico
-var EVENT_POOL = [
+const EVENT_POOL = [
   {
     icon: '⛲',
     title: 'SANTUARIO CURATIVO',
@@ -128,22 +128,22 @@ var EVENT_POOL = [
 
 //definiciones de hojas de sprites — cols/rows describen el layout de la hoja
 //offsetRow se usa cuando múltiples animaciones comparten la misma imagen
-var SPRITE_DEF = {
+const SPRITE_DEF = {
   idle:        { src:'assets/sprites/idle.png',           cols:5,  rows:1, frameW:106, frameH:22,  totalFrames:5,  fps:8  },
   attack:      { src:'assets/sprites/attack.png',         cols:11, rows:1, frameW:106, frameH:22,  totalFrames:11, fps:12 },
   death:       { src:'assets/sprites/death.png',          cols:5,  rows:1, frameW:106, frameH:22,  totalFrames:5,  fps:8  },
   damaged:     { src:'assets/sprites/damaged.png',        cols:2,  rows:1, frameW:106, frameH:22,  totalFrames:2,  fps:8  },
 
-  necroIdle:   { src:'assets/sprites/necromancer.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:8,  offsetRow:0 },
-  necroAttack: { src:'assets/sprites/necromancer.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:10, offsetRow:2 },
-  necroHurt:   { src:'assets/sprites/necromancer.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:8,  offsetRow:1 },
-  necroDeath:  { src:'assets/sprites/necromancer.png',    cols:5,  rows:4, frameW:128, frameH:140, totalFrames:5,  fps:8,  offsetRow:3 },
+  necroIdle:   { src:'assets/sprites/necromancerIDLE.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:8,  offsetRow:0 },
+  necroAttack: { src:'assets/sprites/necromancerATTACK.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:10, offsetRow:2 },
+  necroHurt:   { src:'assets/sprites/necromancerHURT.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:8,  offsetRow:1 },
+  necroDeath:  { src:'assets/sprites/necromancerDEATH.png',    cols:5,  rows:4, frameW:128, frameH:140, totalFrames:5,  fps:8,  offsetRow:3 },
 
   golemIdle:   { src:'assets/sprites/Golem_1_idle.png',   cols:8,  rows:1, frameW:90,  frameH:64,  totalFrames:8,  fps:8  },
   golemAttack: { src:'assets/sprites/Golem_1_attack.png', cols:11, rows:1, frameW:90,  frameH:64,  totalFrames:11, fps:12 },
   golemHurt:   { src:'assets/sprites/Golem_1_hurt.png',   cols:4,  rows:1, frameW:90,  frameH:64,  totalFrames:4,  fps:10 },
   golemDie:    { src:'assets/sprites/Golem_1_die.png',    cols:13, rows:1, frameW:90,  frameH:64,  totalFrames:13, fps:10 },
-  
+
   bossIdle:    { src:'assets/sprites/wizard_idle.png',    cols:10, rows:1, frameW:80,  frameH:80,  totalFrames:10, fps:8  },
   bossAttack:  { src:'assets/sprites/wizard_attack.png',  cols:8,  rows:5, frameW:250, frameH:100, totalFrames:8,  fps:10 },
   bossDeath:   { src:'assets/sprites/wizard_death.png',   cols:10, rows:1, frameW:80,  frameH:80,  totalFrames:10, fps:8  },

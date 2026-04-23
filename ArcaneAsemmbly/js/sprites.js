@@ -1,34 +1,37 @@
 //sprites.js: caché de imágenes, clase SpriteAnimator y gestión de sprites de batalla.
 
-//caché global de imágenes para no recargar el mismo archivo más de una vez
-var imgCache = {};
+//imgCache almacena objetos Image ya cargados para evitar recargas y acelerar el acceso
+const imgCache = {};
 
-//carga una imagen y la guarda en caché; devuelve una Promesa con el objeto Image
+//solicita una imagen al navegador y la almacena en imgCache al completarse.
+// Devuelve una Promesa para que el llamador pueda encadenar .then() sin bloquear.
+// POR QUÉ Promesa en lugar de callback directo: permite usar async/await y
+// encadenar múltiples cargas en paralelo con Promise.all() si fuera necesario.
 function loadImg(src) {
   return new Promise(function(resolve, reject) {
     if (imgCache[src]) { resolve(imgCache[src]); return; }
-    var img     = new Image();
-    img.onload  = function() { imgCache[src] = img; resolve(img); };
-    img.onerror = function() { console.warn('sprite no encontrado:', src); reject(); };
-    img.src     = src;
+    const img    = new Image();
+    img.onload   = function() { imgCache[src] = img; resolve(img); };
+    img.onerror  = function() { console.warn('sprite no encontrado:', src); reject(); };
+    img.src      = src;
   });
 }
 
-/** 
- * SpriteAnimator: reproduce una animación de hoja de sprites sobre un elemento <canvas>
- * {string}    canvasId: id del canvas destino
- * {object}   def: definición del sprite con propiedades src,cols,rows,frameW,frameH,totalFrames,fps y opcional offsetRow 
- * {boolean}  loop: si true, la animación se repite indefinidamente
- * {function} onDone: callback que se llama al terminar una animación no-loop 
- * {boolean}  flip: si true, el sprite se refleja horizontalmente, personaje jugador
- */
+/**
+* SpriteAnimator: reproduce una animación de hoja de sprites sobre un elemento <canvas>
+* {string}    canvasId: id del canvas destino
+* {object}   def: definición del sprite con propiedades src,cols,rows,frameW,frameH,totalFrames,fps y opcional offsetRow 
+* {boolean}  loop: si true, la animación se repite indefinidamente
+* {function} onDone: callback que se llama al terminar una animación no-loop 
+* {boolean}  flip: si true, el sprite se refleja horizontalmente, personaje jugador mirando a la izquierda
+*/
 function SpriteAnimator(canvasId, def, loop, onDone, flip) {
   this.canvas = getId(canvasId);
   this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
   this.def = def;
   this.loop = loop !== undefined ? loop : true;
   this.onDone = onDone || null;
-  this.flip = flip || false;
+  this.flip = flip   || false;
   this.frame = 0;
   this.img = null;
   this.rafId = null;
@@ -36,30 +39,35 @@ function SpriteAnimator(canvasId, def, loop, onDone, flip) {
   this._start();
 }
 
-// Inicia la carga de la imagen y luego arranca el ticker de frames
+//inicia la carga de la imagen (o la toma del caché) y luego arranca el ticker de animación 
+//comienza a animar tan pronto como la imagen esté disponible, sin bloquear el hilo principal ni la UI
 SpriteAnimator.prototype._start = function() {
-  var self = this;
+  const self = this;
   if (imgCache[this.def.src]) {
-    this.img = imgCache[this.def.src];
+    this.img  = imgCache[this.def.src];
     this.rafId = requestAnimationFrame(function(ts) { self._tick(ts); });
   } else {
     loadImg(this.def.src)
       .then(function(img) {
-        self.img = img;
+        self.img   = img;
         self.rafId = requestAnimationFrame(function(ts) { self._tick(ts); });
       })
       .catch(function() {
-        // Si no existe el sprite, dibuja un marcador de posición para no dejar el canvas vacío
+        // Si el archivo no existe dibujamos un marcador de posición para que el
+        // canvas nunca quede en blanco — el juego sigue funcionando sin sprites.
         self._drawPlaceholder();
         self.rafId = requestAnimationFrame(function(ts) { self._tick(ts); });
       });
   }
 };
 
-// Dibuja un rectángulo simple cuando la hoja de sprites no está disponible
+//dibuja un rectángulo de relleno cuando la hoja de sprites no está disponible
+//POR QUÉ mantener el ticker incluso sin imagen: el juego debe poder avanzar
+//aunque los assets no hayan cargado
 SpriteAnimator.prototype._drawPlaceholder = function() {
   if (!this.ctx) return;
-  var cw = this.canvas.width, ch = this.canvas.height;
+  const cw = this.canvas.width;
+  const ch = this.canvas.height;
   this.ctx.clearRect(0, 0, cw, ch);
   this.ctx.fillStyle = '#1E3050';
   this.ctx.fillRect(4, 4, cw - 8, ch - 8);
@@ -69,10 +77,10 @@ SpriteAnimator.prototype._drawPlaceholder = function() {
   this.ctx.fillText('?', cw / 2, ch / 2 + 4);
 };
 
-//se llama cada frame de animación — avanza el contador de frames al fps correcto
+//se llama en cada frame de animación del navegador requestAnimationFrame
 SpriteAnimator.prototype._tick = function(now) {
-  var self     = this;
-  var interval = 1000 / this.def.fps;
+  const self     = this;
+  const interval = 1000 / this.def.fps;
 
   if (now - this.lastTime >= interval) {
     this.lastTime = now;
@@ -85,7 +93,7 @@ SpriteAnimator.prototype._tick = function(now) {
         this.frame = this.def.totalFrames - 1;
         if (this.img) this._draw(); else this._drawPlaceholder();
         if (this.onDone) this.onDone();
-        return;
+        return; //salir sin programar otro frame — la animación terminó
       }
     }
     if (this.img) this._draw(); else this._drawPlaceholder();
@@ -93,37 +101,61 @@ SpriteAnimator.prototype._tick = function(now) {
   this.rafId = requestAnimationFrame(function(ts) { self._tick(ts); });
 };
 
-//dibuja el frame actual recortado de la hoja de sprites, escalado al tamaño del canvas
+// Recorta el frame actual de la hoja de sprites y lo escala al tamaño del canvas.
+//
+// Cómo se indexan los frames (sx / sy):
+//   La hoja está organizada en columnas y filas de celdas de igual tamaño.
+//   • sx (source X) = (frame % cols) * frameW
+//       El resto de dividir el índice del frame entre el número de columnas
+//       da la columna actual dentro de la fila → multiplicada por el ancho
+//       de cada frame obtiene el píxel X de inicio en la imagen.
+//   • sy (source Y) = fila * frameH
+//       La "fila" se calcula de dos formas:
+//       - Si offsetRow está definido en la definición del sprite, se usa ese
+//         valor fijo.  Esto permite que una hoja con múltiples animaciones en
+//         filas distintas muestre siempre la animación correcta sin mezclar
+//         frames de otras filas (ej. la fila 0 es "idle", la fila 2 es "ataque").
+//       - Si offsetRow no está definido, la fila es Math.floor(frame / cols),
+//         lo que recorre la hoja en orden de izquierda a derecha, fila por fila.
+//
+// Por qué frameH evita espacio vacío:
+//   El recorte toma exactamente frameH píxeles de alto.  Si la hoja tiene filas
+//   adicionales (por ejemplo 4 filas pero sólo usamos la primera), drawImage
+//   nunca accede a las filas sobrantes porque el área de origen está acotada
+//   por (sy, frameH).  Sin este acotamiento se vería contenido de otras
+//   animaciones superpuesto en el canvas.
 SpriteAnimator.prototype._draw = function() {
   if (!this.ctx || !this.img) return;
-  var d  = this.def;
+  const d  = this.def;
   //calcular posición del frame dentro de la hoja de sprites
-  var sx = (this.frame % d.cols) * d.frameW;
-  var sy = (d.offsetRow !== undefined ? d.offsetRow : Math.floor(this.frame / d.cols)) * d.frameH;
-  var cw = this.canvas.width;
-  var ch = this.canvas.height;
+  const sx = (this.frame % d.cols) * d.frameW;
+  const sy = (d.offsetRow !== undefined ? d.offsetRow : Math.floor(this.frame / d.cols)) * d.frameH;
+  const cw = this.canvas.width;
+  const ch = this.canvas.height;
 
   this.ctx.clearRect(0, 0, cw, ch);
   this.ctx.save();
-  if (this.flip) { this.ctx.translate(cw, 0); this.ctx.scale(-1, 1); } //espejo horizontal
+
+  //si flip es true, reflejar horizontalmente para que el personaje mire a la izquierda 
+  if (this.flip) { this.ctx.translate(cw, 0); this.ctx.scale(-1, 1); }
   this.ctx.imageSmoothingEnabled = true;
 
-  //escalar el frame para que quepa en el canvas manteniendo proporciones
-  var scale = Math.min(cw / d.frameW, ch / d.frameH);
-  var dw = Math.round(d.frameW * scale);
-  var dh = Math.round(d.frameH * scale);
-  var dx = Math.round((cw - dw) / 2);
-  var dy = Math.round((ch - dh) / 2);
+  //escalar el frame para que ocupe el canvas completo manteniendo proporción
+  const scale = Math.min(cw / d.frameW, ch / d.frameH);
+  const dw = Math.round(d.frameW * scale);
+  const dh = Math.round(d.frameH * scale);
+  const dx = Math.round((cw - dw) / 2);
+  const dy = Math.round((ch - dh) / 2);
   this.ctx.drawImage(this.img, sx, sy, d.frameW, d.frameH, dx, dy, dw, dh);
   this.ctx.restore();
 };
 
-//cancela el loop de animación
+//cancela el loop de animación liberando el id de rAF reservado
 SpriteAnimator.prototype.stop = function() {
   if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
 };
 
-//cambia a una nueva definición de animación sin crear un nuevo SpriteAnimator
+//cambia a una nueva definición de animación reutilizando el mismo canvas
 SpriteAnimator.prototype.changeDef = function(def, loop, onDone) {
   this.stop();
   this.def      = def;
@@ -135,10 +167,11 @@ SpriteAnimator.prototype.changeDef = function(def, loop, onDone) {
 };
 
 //instancias activas de animador — una por slot de canvas
-var playerAnim   = null;
-var enemyAnim    = null;
-var merchantAnim = null;
-var npcAnim      = null;
+//son let porque se reasignan en cada combate/pantalla nueva
+let playerAnim   = null;
+let enemyAnim    = null;
+let merchantAnim = null;
+let npcAnim      = null;
 
 //configura los animadores del jugador y el enemigo al entrar a una pantalla de combate
 function initBattleSprites(nombreEnemigo, isBoss) {
@@ -149,7 +182,7 @@ function initBattleSprites(nombreEnemigo, isBoss) {
   playerAnim = new SpriteAnimator('sprite-player', SPRITE_DEF.idle, true, null, true);
 
   //el sprite del enemigo depende de la zona y si es un jefe
-  var defE;
+  let defE;
   if (isBoss) defE = SPRITE_DEF.bossIdle;
   else if (State.zone <= 1) defE = SPRITE_DEF.necroIdle;
   else defE = SPRITE_DEF.golemIdle;
@@ -159,10 +192,10 @@ function initBattleSprites(nombreEnemigo, isBoss) {
   updateSpriteHP(1, 1);
 }
 
-//actualiza el ancho de las barras de HP debajo de cada sprite valores 0–1
+//actualiza el ancho de las barras de HP debajo de cada sprite (valores 0–1)
 function updateSpriteHP(pp, ep) {
-  var pb = getId('sprite-player-hp');
-  var eb = getId('sprite-enemy-hp');
+  const pb = getId('sprite-player-hp');
+  const eb = getId('sprite-enemy-hp');
   if (pb) pb.style.width = Math.max(0, pp * 100) + '%';
   if (eb) eb.style.width = Math.max(0, ep * 100) + '%';
 }
@@ -183,12 +216,12 @@ function playEnemyAttack(onDone) {
   if (!enemyAnim) { if (onDone) onDone(); return; }
 
   //seleccionar el set de animación correcto según tipo de enemigo y zona
-  var isBoss = false;
+  let isBoss = false;
   if (Combat.currentEnemy)
-    for (var i = 0; i < ENEMIES.boss.length; i++)
+    for (let i = 0; i < ENEMIES.boss.length; i++)
       if (ENEMIES.boss[i].name === Combat.currentEnemy.name) { isBoss = true; break; }
 
-  var atk, idle;
+  let atk, idle;
   if (isBoss) { atk = SPRITE_DEF.bossAttack;  idle = SPRITE_DEF.bossIdle; }
   else if (State.zone <= 1) { atk = SPRITE_DEF.necroAttack; idle = SPRITE_DEF.necroIdle; }
   else { atk = SPRITE_DEF.golemAttack; idle = SPRITE_DEF.golemIdle; }
@@ -205,26 +238,27 @@ function playEnemyAttack(onDone) {
 function playEnemyDeath(onDone) {
   if (!enemyAnim) { if (onDone) onDone(); return; }
 
-  var isBoss = false;
+  let isBoss = false;
   if (Combat.currentEnemy)
-    for (var i = 0; i < ENEMIES.boss.length; i++)
+    for (let i = 0; i < ENEMIES.boss.length; i++)
       if (ENEMIES.boss[i].name === Combat.currentEnemy.name) { isBoss = true; break; }
 
-  var die = isBoss ? SPRITE_DEF.bossDeath
-          : (State.zone <= 1 ? SPRITE_DEF.necroDeath : SPRITE_DEF.golemDie);
+  const die = isBoss ? SPRITE_DEF.bossDeath
+            : (State.zone <= 1 ? SPRITE_DEF.necroDeath : SPRITE_DEF.golemDie);
 
   enemyAnim.changeDef(die, false, function() {
     setTimeout(function() { if (onDone) onDone(); }, 400);
   });
 }
 
-//activa la animación CSS de impacto en el slot de sprite indicado player o enemy
+//reproduce un destello de impacto en el sprite del jugador o enemigo al recibir daño 
+//slot: 'player' o 'enemy'
 function spriteHit(slot) {
-  var canvas = getId('sprite-' + slot);
+  const canvas = getId('sprite-' + slot);
   if (!canvas) return;
-  var el = canvas.closest('.sprite-slot') || canvas.parentElement;
+  const el = canvas.closest('.sprite-slot') || canvas.parentElement;
   el.classList.remove('hit');
-  void el.offsetWidth; //forzar reflow para reiniciar la animación
+  void el.offsetWidth; //forzar reflow para reiniciar la animación CSS
   el.classList.add('hit');
   setTimeout(function() { el.classList.remove('hit'); }, 400);
 }

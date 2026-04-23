@@ -1,7 +1,7 @@
 //combat.js: lógica de resolución de combate, gestión de rondas y sistema RoundBuilder de colocación
 
 //módulo Combat
-var Combat = {
+const Combat = {
   running: false,//true mientras se está resolviendo una ronda (bloquea interacción)
   buildRound: 1,//número de ronda de construcción actual
   enemyHp: 0,//HP actual del enemigo
@@ -11,7 +11,7 @@ var Combat = {
 
   //configura un nuevo encuentro de combate — HP se escala por zona y tipo de nodo
   init: function(zone, nodeType) {
-    var base = 22 + zone * 6;
+    let base = 22 + zone * 6;
     if (nodeType === 'elite') base = 45 + zone * 12;
     if (nodeType === 'boss')  base = 90 + zone * 25;
 
@@ -22,6 +22,7 @@ var Combat = {
     this.buildRound   = 1;
 
     getId('log-entries').innerHTML = '';
+    getId('last-event').classList.add('hidden');
     this.updateEnemyUI();
     this.updatePlayerUI();
     this.updateImpulseUI();
@@ -34,23 +35,23 @@ var Combat = {
    * return {{ damage, shield, reflect, synergyCount, catBonus }}
    */
   resolveBoard: function(side) {
-    var grid = (side === 'enemy') ? enemyGrid : playerGrid;
-    var dmg = 0, shield = 0, reflect = 0;
-    var recursos = {}; //mapa "col,row" -> energía producida por generadores
+    const grid = (side === 'enemy') ? enemyGrid : playerGrid;
+    let dmg = 0, shield = 0, reflect = 0;
+    const recursos = {}; //mapa "col,row" -> energía producida por generadores
 
     //fase 1 — recolectar energía de todos los generadores
-    for (var r = 0; r < GRID_ROWS; r++)
-      for (var c = 0; c < GRID_COLS; c++) {
-        var p = getPiece(grid[r][c]);
+    for (let r = 0; r < GRID_ROWS; r++)
+      for (let c = 0; c < GRID_COLS; c++) {
+        const p = getPiece(grid[r][c]);
         if (p && p.type === TYPE_GEN) recursos[c + ',' + r] = p.output;
       }
 
     //fase 2 — los transformadores consumen energía adyacente de generadores y producen daño
-    for (var r = 0; r < GRID_ROWS; r++)
-      for (var c = 0; c < GRID_COLS; c++) {
-        var p = getPiece(grid[r][c]);
+    for (let r = 0; r < GRID_ROWS; r++)
+      for (let c = 0; c < GRID_COLS; c++) {
+        const p = getPiece(grid[r][c]);
         if (!p || p.type !== TYPE_TRANS) continue;
-        var e = 0;
+        let e = 0;
         hexNeighbors(c, r).forEach(function(v) {
           if (recursos[v.col + ',' + v.row]) e += recursos[v.col + ',' + v.row];
         });
@@ -59,16 +60,16 @@ var Combat = {
 
     //fase 3 — los catalizadores amplifican el daño total
     //bonus de sinergia cuando GEN y TRANS son ambos vecinos del catalizador
-    var cat = 0, syn = 0;
-    for (var r = 0; r < GRID_ROWS; r++)
-      for (var c = 0; c < GRID_COLS; c++) {
-        var p = getPiece(grid[r][c]);
+    let cat = 0, syn = 0;
+    for (let r = 0; r < GRID_ROWS; r++)
+      for (let c = 0; c < GRID_COLS; c++) {
+        const p = getPiece(grid[r][c]);
         if (!p || p.type !== TYPE_CAT) continue;
-        var vv = hexNeighbors(c, r).filter(function(v) { return grid[v.row][v.col]; });
+        const vv = hexNeighbors(c, r).filter(function(v) { return grid[v.row][v.col]; });
         cat += p.amplify * vv.length;
-        var tg = false, tt = false;
+        let tg = false, tt = false;
         vv.forEach(function(v) {
-          var vp = getPiece(grid[v.row][v.col]);
+          const vp = getPiece(grid[v.row][v.col]);
           if (vp && vp.type === TYPE_GEN)   tg = true;
           if (vp && vp.type === TYPE_TRANS) tt = true;
         });
@@ -77,9 +78,9 @@ var Combat = {
     dmg *= (1 + cat); //aplicar amplificación total al daño
 
     //fase 4 — las anclas proveen escudo y porcentaje de reflejo
-    for (var r = 0; r < GRID_ROWS; r++)
-      for (var c = 0; c < GRID_COLS; c++) {
-        var p = getPiece(grid[r][c]);
+    for (let r = 0; r < GRID_ROWS; r++)
+      for (let c = 0; c < GRID_COLS; c++) {
+        const p = getPiece(grid[r][c]);
         if (!p || p.type !== TYPE_ANCH) continue;
         if (p.shieldVal)  shield  += p.shieldVal;
         if (p.reflectPct) reflect  = Math.max(reflect, p.reflectPct); //se usa el mayor reflejo disponible
@@ -94,25 +95,46 @@ var Combat = {
     };
   },
 
-  //agrega una entrada estilizada al registro de batalla
+  //agrega una entrada estilizada al registro de batalla y actualiza el banner de último evento
   log: function(msg, tipo) {
-    var entries = getId('log-entries');
-    var div     = document.createElement('div');
+    const entries = getId('log-entries');
+
+    //quitar .latest de la entrada anterior para que solo haya una destacada
+    const prev = entries.querySelector('.log-entry.latest');
+    if (prev) prev.classList.remove('latest');
+
+    const div = document.createElement('div');
     div.className   = 'log-entry ' + (tipo || '') + ' fade-in';
     div.textContent = msg;
     entries.appendChild(div);
+    div.classList.add('latest');
     entries.parentElement.scrollTop = entries.parentElement.scrollHeight;
+
+    //actualizar el banner de último evento
+    const banner = getId('last-event');
+    const leText = getId('le-text');
+    if (banner && leText) {
+      leText.textContent = msg;
+      //limpiar variantes de color anteriores y aplicar la del tipo actual
+      banner.classList.remove('dmg', 'syn', 'shld', 'vic', 'def', 'info');
+      if (tipo) banner.classList.add(tipo);
+      banner.classList.remove('hidden');
+      //reiniciar la animación: quitar .pulse, forzar reflow, re-agregar .pulse
+      banner.classList.remove('pulse');
+      void banner.offsetWidth;
+      banner.classList.add('pulse');
+    }
   },
 
   //sincroniza la barra de HP del enemigo y el badge del tipo de nodo
   updateEnemyUI: function() {
-    var pct = Math.max(0, this.enemyHp) / this.enemyMaxHp;
+    const pct  = Math.max(0, this.enemyHp) / this.enemyMaxHp;
     getId('e-hp').textContent     = 'HP: ' + Math.max(0, this.enemyHp);
     getId('e-hp-bar').style.width = (pct * 100) + '%';
 
-    var node = State.currentNode;
+    const node = State.currentNode;
     if (node) {
-      var nb      = getId('node-badge');
+      const nb      = getId('node-badge');
       nb.textContent = node.type === 'boss' ? 'JEFE' : node.type === 'elite' ? 'ÉLITE' : 'COMBATE';
       nb.className   = 'node-badge' + (node.type === 'boss' ? ' boss' : node.type === 'elite' ? ' elite' : '');
     }
@@ -121,7 +143,7 @@ var Combat = {
 
   //sincroniza la barra de HP del jugador
   updatePlayerUI: function() {
-    var pct = State.hp / State.maxHp;
+    const pct = State.hp / State.maxHp;
     getId('b-hp-bar').style.width  = (pct * 100) + '%';
     getId('b-hp-val').textContent  = State.hp + '/' + State.maxHp;
     updateSpriteHP(pct, Math.max(0, this.enemyHp) / this.enemyMaxHp);
@@ -129,15 +151,15 @@ var Combat = {
 
   //sincroniza los indicadores de puntos de impulso y el estado del botón
   updateImpulseUI: function() {
-    var dots = getId('b-impulse');
+    const dots = getId('b-impulse');
     if (!dots) return;
     dots.innerHTML = '';
-    for (var i = 0; i < State.maxImpulse; i++) {
-      var d = document.createElement('div');
+    for (let i = 0; i < State.maxImpulse; i++) {
+      const d = document.createElement('div');
       d.className = 'impulse-dot' + (i < State.impulse ? '' : ' empty');
       dots.appendChild(d);
     }
-    var btn = getId('btn-impulse');
+    const btn = getId('btn-impulse');
     if (btn) {
       btn.disabled = State.impulse <= 0 || this.running;
       getId('impulse-cost').textContent = '(' + State.impulse + ' restantes)';
@@ -146,10 +168,10 @@ var Combat = {
 
   //actualiza la previsualización de daño/escudo bajo el tablero del jugador
   updatePreview: function() {
-    var pr = this.resolveBoard('player');
+    const pr  = this.resolveBoard('player');
     getId('p-dmg').textContent  = 'DMG: ' + pr.damage;
     getId('p-shld').textContent = 'ESC: ' + pr.shield;
-    var syn = getId('p-syn');
+    const syn = getId('p-syn');
     if (pr.synergyCount > 0) syn.classList.remove('hidden');
     else                     syn.classList.add('hidden');
   },
@@ -166,13 +188,13 @@ var Combat = {
     this.log('━━ RONDA ' + this.buildRound + ' ━━');
 
     //animar los indicadores de fase para que el jugador pueda seguir la resolución
-    var fases = ['FASE 1 — GENERADORES','FASE 2 — TRANSFORMADORES','FASE 3 — CATALIZADORES','FASE 4 — ANCLAS','FASE 5 — DAÑO FINAL'];
-    var phEl = getId('phase-indicator');
+    const fases = ['FASE 1 — GENERADORES','FASE 2 — TRANSFORMADORES','FASE 3 — CATALIZADORES','FASE 4 — ANCLAS','FASE 5 — DAÑO FINAL'];
+    const phEl  = getId('phase-indicator');
     phEl.classList.remove('hidden');
-    for (var i = 0; i < fases.length; i++) { phEl.textContent = fases[i]; await waitMs(280); }
+    for (let i = 0; i < fases.length; i++) { phEl.textContent = fases[i]; await waitMs(280); }
     phEl.classList.add('hidden');
 
-    var pr = this.resolveBoard('player');
+    const pr = this.resolveBoard('player');
     this.playerShield = pr.shield;
 
     if (pr.damage > 0) this.log('⚡ Tu tablero genera ' + pr.damage + ' de daño', 'dmg');
@@ -182,28 +204,28 @@ var Combat = {
     if (pr.synergyCount > 0) {
       this.log('✦ x' + pr.synergyCount + ' Sinergia! +' + pr.catBonus + '% daño extra', 'syn');
       SFX.sinergia();
-      var pb = getId('playerBoard');
-      if (pb) { var rc = pb.getBoundingClientRect(); fxSynergy(rc.left + rc.width / 2, rc.top + rc.height / 2); }
+      const pb = getId('playerBoard');
+      if (pb) { const rc = pb.getBoundingClientRect(); fxSynergy(rc.left + rc.width / 2, rc.top + rc.height / 2); }
       await waitMs(500);
     }
     await waitMs(280);
 
     //resolver el tablero enemigo para calcular el daño entrante
-    var er       = this.resolveBoard('enemy');
-    var incoming = er.damage;
+    const er    = this.resolveBoard('enemy');
+    let incoming = er.damage;
 
     //el escudo del jugador absorbe el daño entrante primero
     if (this.playerShield > 0) {
-      var bl = Math.min(this.playerShield, incoming);
+      const bl = Math.min(this.playerShield, incoming);
       incoming -= bl;
       this.log('🛡 Escudo bloquea ' + bl + ' pts', 'shld');
-      var ps = getId('sprite-player');
-      if (ps) { var rc2 = ps.getBoundingClientRect(); fxShield(rc2.left + rc2.width / 2, rc2.top + rc2.height / 2); }
+      const ps = getId('sprite-player');
+      if (ps) { const rc2 = ps.getBoundingClientRect(); fxShield(rc2.left + rc2.width / 2, rc2.top + rc2.height / 2); }
     }
 
     //el reflejo devuelve una porción del daño restante al enemigo
     if (pr.reflect > 0 && incoming > 0) {
-      var ref = Math.round(incoming * pr.reflect);
+      const ref = Math.round(incoming * pr.reflect);
       this.enemyHp -= ref;
       this.log('↩ Reflejo: ' + ref + ' al enemigo', 'syn');
       this.updateEnemyUI();
@@ -218,14 +240,14 @@ var Combat = {
       SFX.danoEnemigo();
 
       //los enemigos no-jefe reproducen una animación de daño recibido
-      var isBoss = false;
+      let isBoss = false;
       if (Combat.currentEnemy)
-        for (var i = 0; i < ENEMIES.boss.length; i++)
+        for (let i = 0; i < ENEMIES.boss.length; i++)
           if (ENEMIES.boss[i].name === Combat.currentEnemy.name) { isBoss = true; break; }
 
       if (enemyAnim && this.enemyHp > 0 && !isBoss) {
-        var hd  = State.zone <= 1 ? SPRITE_DEF.necroHurt: SPRITE_DEF.golemHurt;
-        var id2 = State.zone <= 1 ? SPRITE_DEF.necroIdle: SPRITE_DEF.golemIdle;
+        const hd  = State.zone <= 1 ? SPRITE_DEF.necroHurt  : SPRITE_DEF.golemHurt;
+        const id2 = State.zone <= 1 ? SPRITE_DEF.necroIdle  : SPRITE_DEF.golemIdle;
         enemyAnim.changeDef(hd, false, function() {
           setTimeout(function() { if (enemyAnim) enemyAnim.changeDef(id2, true); }, 80);
         });
@@ -254,9 +276,9 @@ var Combat = {
     updateSpriteHP(State.hp / State.maxHp, Math.max(0, this.enemyHp) / this.enemyMaxHp);
 
     //destellos de las celdas del enemigo para mostrar su ataque, luego restaurar el tablero
-    var fp = [];
-    for (var r = 0; r < GRID_ROWS; r++)
-      for (var c = 0; c < GRID_COLS; c++) if (enemyGrid[r][c]) fp.push({ col: c, row: r });
+    const fp = [];
+    for (let r = 0; r < GRID_ROWS; r++)
+      for (let c = 0; c < GRID_COLS; c++) if (enemyGrid[r][c]) fp.push({ col: c, row: r });
     boardRender('enemyBoard', 'enemy', null, fp);
     await waitMs(200);
     boardRender('enemyBoard', 'enemy');
@@ -273,10 +295,10 @@ var Combat = {
       SFX.victoria();
       fxVictory(window.innerWidth / 2, window.innerHeight * 0.3);
       //las anclas de regeneración curan al jugador tras ganar
-      var regen = 0;
-      for (var r = 0; r < GRID_ROWS; r++)
-        for (var c = 0; c < GRID_COLS; c++) {
-          var p = getPiece(playerGrid[r][c]);
+      let regen = 0;
+      for (let r = 0; r < GRID_ROWS; r++)
+        for (let c = 0; c < GRID_COLS; c++) {
+          const p = getPiece(playerGrid[r][c]);
           if (p && p.type === TYPE_ANCH && p.regenVal) regen += p.regenVal;
         }
       if (regen > 0) { State.hp = Math.min(State.maxHp, State.hp + regen); this.log('💚 Anclas: +' + regen + ' HP', 'shld'); }
@@ -303,12 +325,16 @@ var Combat = {
     this.buildRound++;
     this.log('── Enemigo sobrevive (' + Math.max(0, this.enemyHp) + ' HP). Nueva ronda ──', 'info');
     await waitMs(380);
+
+    //el enemigo reconfigura su tablero al inicio de cada nueva ronda
+    boardGenerateEnemy(State.zone, State.currentNode.type);
+    boardRender('enemyBoard', 'enemy');
     RoundBuilder.startBuildRound();
   },
 };
 
 // módulo RoundBuilder
-var RoundBuilder = {
+const RoundBuilder = {
   roundPieces: [], //piezas disponibles para colocar en esta ronda
   placed:      0,  //cuántas piezas ha colocado el jugador hasta ahora
 
@@ -318,15 +344,15 @@ var RoundBuilder = {
     this.placed = 0;
 
     //pool = catálogo filtrado por rareza de zona + colección desbloqueada del jugador
-    var pool = [];
-    for (var i = 0; i < CATALOG.length; i++)
+    const pool = [];
+    for (let i = 0; i < CATALOG.length; i++)
       if (CATALOG[i].rarity <= Math.min(State.zone, 3)) pool.push(CATALOG[i]);
-    for (var i = 0; i < State.unlockedIds.length; i++) {
-      var p = getPiece(State.unlockedIds[i]);
+    for (let i = 0; i < State.unlockedIds.length; i++) {
+      const p = getPiece(State.unlockedIds[i]);
       if (p) pool.push(p);
     }
     this.roundPieces = [];
-    for (var i = 0; i < PIECES_PER_ROUND; i++)
+    for (let i = 0; i < PIECES_PER_ROUND; i++)
       this.roundPieces.push(pool[Math.floor(Math.random() * pool.length)]);
 
     this.renderPieces();
@@ -338,11 +364,11 @@ var RoundBuilder = {
 
   //renderiza la grilla de tarjetas de pieza en el panel de inventario
   renderPieces: function() {
-    var grid = getId('piece-grid');
+    const grid = getId('piece-grid');
     grid.innerHTML = '';
-    for (var i = 0; i < this.roundPieces.length; i++) {
-      var p    = this.roundPieces[i];
-      var card = document.createElement('div');
+    for (let i = 0; i < this.roundPieces.length; i++) {
+      const p    = this.roundPieces[i];
+      const card = document.createElement('div');
       card.className = 'piece-card';
       card.innerHTML =
         '<span class="pc-icon" style="color:' + TYPE_COLORS[p.type] + '">' + TYPE_ICONS[p.type] + '</span>' +
@@ -360,14 +386,14 @@ var RoundBuilder = {
 
   //actualiza la etiqueta de ronda y el contador de piezas restantes
   updateLabels: function() {
-    getId('build-lbl').textContent = 'Ronda ' + Combat.buildRound + ' — Coloca tus ' + PIECES_PER_ROUND + ' piezas';
+    getId('build-lbl').textContent   = 'Ronda ' + Combat.buildRound + ' — Coloca tus ' + PIECES_PER_ROUND + ' piezas';
     getId('pieces-left').textContent = (PIECES_PER_ROUND - this.placed) + ' restantes';
   },
 
   //se llama cuando una pieza es colocada exitosamente en el tablero
   markPlaced: function(index) {
     this.placed++;
-    var cards = getId('piece-grid').querySelectorAll('.piece-card');
+    const cards = getId('piece-grid').querySelectorAll('.piece-card');
     if (cards[index]) cards[index].classList.add('used');
     this.updateLabels();
     Combat.updatePreview();
@@ -380,12 +406,12 @@ var RoundBuilder = {
 
   //agrega una pieza extra a la mano (se activa al gastar una carga de impulso)
   addExtraPiece: function() {
-    var pool  = CATALOG.filter(function(p) { return p.rarity <= Math.min(State.zone, 3); });
-    var extra = pool[Math.floor(Math.random() * pool.length)];
+    const pool  = CATALOG.filter(function(p) { return p.rarity <= Math.min(State.zone, 3); });
+    const extra = pool[Math.floor(Math.random() * pool.length)];
     this.roundPieces.push(extra);
-    var grid  = getId('piece-grid');
-    var card  = document.createElement('div');
-    var idx   = this.roundPieces.length - 1;
+    const grid  = getId('piece-grid');
+    const card  = document.createElement('div');
+    const idx   = this.roundPieces.length - 1;
     card.className = 'piece-card fade-in';
     card.innerHTML =
       '<span class="pc-icon" style="color:' + TYPE_COLORS[extra.type] + '">' + TYPE_ICONS[extra.type] + '</span>' +
