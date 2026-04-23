@@ -1,0 +1,371 @@
+# Arcane Assembly — seed.sql (VERSIÓN 2)
+# Ejecutar DESPUÉS de schema.sql
+# Este script inserta 30-50 filas dummy por tabla según requisito:
+#   • 15 piezas del catálogo real del juego
+#   • 9 enemigos (4 combate + 2 élite + 3 boss)
+#   • 30 jugadores (29 normales + 1 admin)
+#   • 40 runs distribuidas entre los jugadores
+#   • ~50 nodos (varios por run)
+#   • ~40 combates, ~50 colocaciones, ~40 entradas de inventario
+#   • ~30 eventos_nodo
+
+USE arcane_assembly;
+
+# Desactivar triggers durante el seed para evitar doble conteo
+SET @DISABLE_TRIGGERS := 1;
+
+# TABLA: PIEZA  (15 filas — catálogo completo del juego)
+INSERT INTO PIEZA (pieza_id, nombre, tipo, rareza, descripcion, output_base, multiplicador, amplificacion, escudo_val, regen_val, reflejo_pct) VALUES
+('gen_e','Cristal de Energía',       'generator',  0,'Genera 2 unidades de energía base.',         2.0,  NULL, NULL, NULL, NULL, NULL),
+('gen_h','Núcleo Térmico',           'generator',  1,'Genera 3 unidades de calor arcano.',         3.0,  NULL, NULL, NULL, NULL, NULL),
+('gen_p','Emisor de Pulso',          'generator',  2,'Genera 4 unidades de pulso arcano.',         4.0,  NULL, NULL, NULL, NULL, NULL),
+('gen_v','Grieta del Vacío',         'generator',  3,'Genera 6 unidades de energía pura.',         6.0,  NULL, NULL, NULL, NULL, NULL),
+('tr_b', 'Cámara de Corte',          'transformer',0,'Convierte recursos vecinos x1.5 en daño.',   NULL, 1.50, NULL, NULL, NULL, NULL),
+('tr_f', 'Fragua Arcana',            'transformer',1,'Convierte recursos vecinos x2.0 en daño.',   NULL, 2.00, NULL, NULL, NULL, NULL),
+('tr_s', 'Condensador de Tormenta',  'transformer',2,'Convierte recursos vecinos x2.8.',           NULL, 2.80, NULL, NULL, NULL, NULL),
+('tr_v', 'Aniquilador',              'transformer',3,'Convierte recursos vecinos x3.5.',           NULL, 3.50, NULL, NULL, NULL, NULL),
+('cat_r','Resonador',                'catalyst',   0,'Amplifica vecinos +25%. Bonus GEN+TRANS.',   NULL, NULL, 0.25, NULL, NULL, NULL),
+('cat_p','Prisma Arcano',            'catalyst',   2,'Amplifica vecinos +45%.',                    NULL, NULL, 0.45, NULL, NULL, NULL),
+('cat_n','Nodo Nexo',                'catalyst',   3,'Amplifica TODOS los vecinos +75%.',          NULL, NULL, 0.75, NULL, NULL, NULL),
+('anc_s','Ancla de Escudo',          'anchor',     0,'Genera 10 puntos de escudo cada ronda.',     NULL, NULL, NULL, 10,   NULL, NULL),
+('anc_r','Ancla de Regeneración',    'anchor',     1,'Recupera 6 HP al ganar el combate.',         NULL, NULL, NULL, NULL, 6,    NULL),
+('anc_x','Ancla Reflectora',         'anchor',     2,'Refleja el 25% del daño entrante.',          NULL, NULL, NULL, NULL, NULL, 0.25),
+('anc_f','Ancla Fortaleza',          'anchor',     3,'Genera 18 puntos de escudo.',                NULL, NULL, NULL, 18,   NULL, NULL);
+
+# TABLA: ENEMIGO (9 filas — catálogo base)
+INSERT INTO ENEMIGO (nombre, tipo_nodo, build, hp_base, flavor_text) VALUES
+('Guardián Arcano',       'combat', 'mixed',    28, 'Sus redes de energía pulsan en sintonía.'),
+('Autómata de Cobre',     'combat', 'tanky',    28, 'Cubierto de anclas, difícil de penetrar.'),
+('Tejedor de Grietas',    'combat', 'aggro',    28, 'Ataca antes de que puedas reaccionar.'),
+('Resonador Errante',     'combat', 'amplify',  28, 'Sus catalizadores multiplican cada golpe.'),
+('Arquitecto del Vacío',  'elite',  'aggro',    57, 'Ha perfeccionado el arte de la destrucción.'),
+('Forjador Maldito',      'elite',  'mixed',    57, 'Combina fuego y oscuridad en cada pieza.'),
+('El Colapso',            'boss',   'boss',    115, 'El fin de todas las construcciones.'),
+('Fractalis, el Primero', 'boss',   'boss',    140, 'La primera pieza colocada en el tablero arcano.'),
+('Nodo Supremo',          'boss',   'boss',    165, 'Control absoluto del tablero.');
+
+# TABLA: JUGADOR (30 filas — 29 jugadores + 1 admin)
+# Los hashes son ejemplos placeholder; en producción se generan con bcrypt.
+INSERT INTO JUGADOR (nombre, email, password_hash, rol, fecha_registro, ultimo_acceso, total_runs, tiempo_total_seg) VALUES
+('Admin Principal',   'admin@arcane.local',      '$2b$10$demohashadminarcaneassemblyxxxxxxxxxxxxxxxxxxxxxxxx', 'admin',   '2026-01-15 10:00:00', '2026-04-20 18:30:00', 0,    0),
+('Josue Gomez',       'josue.gomez@test.com',    '$2b$10$demohash01xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-02-01 09:15:00', '2026-04-21 14:20:00', 0, 7200),
+('Nicolas Matamoros', 'nico.m@test.com',         '$2b$10$demohash02xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-02-03 11:00:00', '2026-04-21 12:10:00', 0, 5400),
+('Luis Felipe Loera', 'lfloera@test.com',        '$2b$10$demohash03xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-02-05 14:30:00', '2026-04-20 22:45:00', 0, 6300),
+('Ana Martínez',      'ana.martinez@test.com',   '$2b$10$demohash04xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-02-08 10:20:00', '2026-04-21 16:05:00', 0, 4500),
+('Carlos Ruiz',       'carlos.r@test.com',       '$2b$10$demohash05xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-02-10 16:45:00', '2026-04-19 20:30:00', 0, 3600),
+('Diana López',       'diana.lopez@test.com',    '$2b$10$demohash06xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-02-12 08:00:00', '2026-04-21 09:15:00', 0, 5100),
+('Eduardo Vega',      'eduardo.v@test.com',      '$2b$10$demohash07xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-02-14 13:20:00', '2026-04-18 21:00:00', 0, 2700),
+('Fernanda Sol',      'fer.sol@test.com',        '$2b$10$demohash08xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-02-16 11:15:00', '2026-04-21 11:00:00', 0, 6000),
+('Gabriel Torres',    'gabi.t@test.com',         '$2b$10$demohash09xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-02-18 15:00:00', '2026-04-20 17:30:00', 0, 3300),
+('Helena Reyes',      'helena.r@test.com',       '$2b$10$demohash10xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-02-20 09:45:00', '2026-04-17 19:20:00', 0, 1800),
+('Iván Castro',       'ivan.castro@test.com',    '$2b$10$demohash11xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-02-22 12:30:00', '2026-04-15 18:00:00', 0,  900),
+('Julia Mendoza',     'julia.m@test.com',        '$2b$10$demohash12xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-02-24 10:00:00', '2026-04-21 15:45:00', 0, 7800),
+('Kevin Prado',       'kevin.p@test.com',        '$2b$10$demohash13xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-02-26 14:15:00', '2026-04-12 20:15:00', 0,  600),
+('Laura Ibáñez',      'laura.i@test.com',        '$2b$10$demohash14xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-02-28 16:30:00', '2026-04-21 13:30:00', 0, 5700),
+('Miguel Ortega',     'miguel.o@test.com',       '$2b$10$demohash15xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-03-02 11:45:00', '2026-04-19 16:00:00', 0, 2400),
+('Natalia Vargas',    'nat.vargas@test.com',     '$2b$10$demohash16xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-03-04 09:00:00', '2026-04-21 10:30:00', 0, 4200),
+('Óscar Jiménez',     'oscar.j@test.com',        '$2b$10$demohash17xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-03-06 13:45:00', '2026-04-10 21:30:00', 0,  300),
+('Paola Rivas',       'paola.r@test.com',        '$2b$10$demohash18xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-03-08 15:30:00', '2026-04-20 19:15:00', 0, 3900),
+('Quintín Navarro',   'quintin.n@test.com',      '$2b$10$demohash19xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-03-10 10:15:00', '2026-04-21 08:45:00', 0, 6600),
+('Rosa Figueroa',     'rosa.f@test.com',         '$2b$10$demohash20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-03-12 12:00:00', '2026-04-14 14:30:00', 0, 1500),
+('Sergio Peña',       'sergio.p@test.com',       '$2b$10$demohash21xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-03-14 08:30:00', '2026-04-18 17:45:00', 0, 3000),
+('Teresa Aguilar',    'tere.a@test.com',         '$2b$10$demohash22xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-03-16 14:45:00', '2026-04-21 17:00:00', 0, 4800),
+('Ulises Beltrán',    'ulises.b@test.com',       '$2b$10$demohash23xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-03-18 11:30:00', '2026-04-09 22:00:00', 0,  450),
+('Valeria Soto',      'vale.s@test.com',         '$2b$10$demohash24xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-03-20 16:15:00', '2026-04-21 11:30:00', 0, 5250),
+('Walter Chávez',     'walter.c@test.com',       '$2b$10$demohash25xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-03-22 10:45:00', '2026-04-16 19:00:00', 0, 2100),
+('Ximena Herrera',    'ximena.h@test.com',       '$2b$10$demohash26xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-03-24 13:00:00', '2026-04-21 16:45:00', 0, 4050),
+('Yago Paredes',      'yago.p@test.com',         '$2b$10$demohash27xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-03-26 15:45:00', '2026-04-11 20:30:00', 0,  750),
+('Zaira Molina',      'zaira.m@test.com',        '$2b$10$demohash28xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-03-28 09:30:00', '2026-04-21 12:45:00', 0, 3450),
+('Bruno Salgado',     'bruno.s@test.com',        '$2b$10$demohash29xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-04-01 14:15:00', '2026-04-20 15:30:00', 0, 1200),
+('Camila Ortiz',      'cami.ortiz@test.com',     '$2b$10$demohash30xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'jugador', '2026-04-03 10:00:00', '2026-04-21 14:00:00', 0,  2550);
+
+# TABLA: RUN (40 filas — runs distribuidas entre jugadores)
+# Los triggers incrementarán total_runs automáticamente durante INSERT, y acumularán tiempo cuando actualicemos fecha_fin.
+# Reseteamos total_runs antes para simular el seed limpio.
+INSERT INTO RUN (jugador_id, fecha_inicio, fecha_fin, zona_actual, hp_actual, impulso, usos_tienda, usos_evento, resultado) VALUES
+ (2, '2026-04-21 10:00:00', NULL,                 2,  75, 2, 1, 0, 'en_progreso'),
+ (2, '2026-04-20 18:00:00', '2026-04-20 19:20:00',3, 100, 3, 2, 2, 'victoria'),
+ (2, '2026-04-19 14:00:00', '2026-04-19 15:15:00',2,   0, 0, 2, 1, 'derrota'),
+ (3, '2026-04-21 11:30:00', NULL,                 1,  80, 2, 0, 1, 'en_progreso'),
+ (3, '2026-04-20 20:00:00', '2026-04-20 21:30:00',3, 100, 3, 2, 3, 'victoria'),
+ (4, '2026-04-20 22:00:00', '2026-04-20 23:10:00',2,   0, 1, 1, 1, 'derrota'),
+ (4, '2026-04-21 13:00:00', NULL,                 1,  90, 3, 0, 0, 'en_progreso'),
+ (5, '2026-04-21 15:30:00', NULL,                 2,  65, 1, 1, 1, 'en_progreso'),
+ (5, '2026-04-19 09:00:00', '2026-04-19 10:30:00',3, 100, 2, 2, 3, 'victoria'),
+ (6, '2026-04-18 20:00:00', '2026-04-18 21:00:00',1,   0, 0, 0, 1, 'derrota'),
+ (7, '2026-04-21 08:00:00', '2026-04-21 09:10:00',2,  20, 1, 2, 2, 'derrota'),
+ (7, '2026-04-20 14:00:00', '2026-04-20 15:40:00',3, 100, 3, 2, 3, 'victoria'),
+ (8, '2026-04-18 19:00:00', '2026-04-18 20:20:00',2,   0, 0, 1, 1, 'derrota'),
+ (9, '2026-04-21 10:30:00', NULL,                 3,  55, 2, 2, 2, 'en_progreso'),
+ (9, '2026-04-20 16:00:00', '2026-04-20 17:45:00',3, 100, 3, 2, 3, 'victoria'),
+ (10,'2026-04-20 16:30:00', '2026-04-20 17:30:00',1,   0, 1, 0, 1, 'derrota'),
+ (11,'2026-04-17 18:00:00', '2026-04-17 19:10:00',2,  30, 1, 1, 1, 'derrota'),
+ (12,'2026-04-15 17:00:00', '2026-04-15 17:45:00',1,   0, 0, 0, 0, 'derrota'),
+ (13,'2026-04-21 14:30:00', NULL,                 2,  85, 3, 1, 1, 'en_progreso'),
+ (13,'2026-04-20 10:00:00', '2026-04-20 11:30:00',3, 100, 2, 2, 3, 'victoria'),
+ (13,'2026-04-19 11:00:00', '2026-04-19 12:10:00',2,   0, 1, 2, 2, 'derrota'),
+ (14,'2026-04-12 19:00:00', '2026-04-12 20:00:00',1,  40, 0, 0, 1, 'derrota'),
+ (15,'2026-04-21 13:00:00', NULL,                 1,  95, 3, 0, 0, 'en_progreso'),
+ (15,'2026-04-20 18:30:00', '2026-04-20 20:15:00',3, 100, 3, 2, 3, 'victoria'),
+ (16,'2026-04-19 15:00:00', '2026-04-19 15:40:00',1,   0, 0, 0, 1, 'derrota'),
+ (17,'2026-04-21 10:00:00', NULL,                 2,  70, 2, 1, 1, 'en_progreso'),
+ (17,'2026-04-20 14:30:00', '2026-04-20 15:45:00',3, 100, 2, 2, 2, 'victoria'),
+ (18,'2026-04-10 20:30:00', '2026-04-10 21:15:00',1,   0, 0, 0, 0, 'derrota'),
+ (19,'2026-04-20 18:00:00', '2026-04-20 19:05:00',2,  10, 1, 1, 2, 'derrota'),
+ (19,'2026-04-19 16:00:00', '2026-04-19 17:30:00',3, 100, 3, 2, 3, 'victoria'),
+ (20,'2026-04-21 08:00:00', NULL,                 3,  60, 1, 2, 2, 'en_progreso'),
+ (20,'2026-04-20 12:00:00', '2026-04-20 13:50:00',3, 100, 3, 2, 3, 'victoria'),
+ (21,'2026-04-14 13:30:00', '2026-04-14 14:15:00',1,   0, 0, 0, 1, 'derrota'),
+ (22,'2026-04-18 16:30:00', '2026-04-18 17:40:00',2,  25, 1, 1, 1, 'derrota'),
+ (23,'2026-04-21 16:00:00', NULL,                 2,  80, 2, 1, 0, 'en_progreso'),
+ (23,'2026-04-20 11:00:00', '2026-04-20 12:20:00',3, 100, 3, 2, 3, 'victoria'),
+ (24,'2026-04-09 21:00:00', '2026-04-09 21:50:00',1,   0, 0, 0, 0, 'derrota'),
+ (25,'2026-04-21 11:00:00', NULL,                 2,  88, 3, 0, 1, 'en_progreso'),
+ (25,'2026-04-20 15:00:00', '2026-04-20 16:15:00',3, 100, 2, 2, 2, 'victoria'),
+ (26,'2026-04-16 18:30:00', '2026-04-16 19:40:00',1,   0, 1, 0, 1, 'derrota');
+
+# Reiniciar el contador total_runs porque el trigger lo incrementó en cada INSERT
+UPDATE JUGADOR SET total_runs = (SELECT COUNT(*) FROM RUN WHERE RUN.jugador_id = JUGADOR.jugador_id);
+# Reiniciar tiempo_total_seg porque los triggers no acumulan bien si insertamos fecha_fin directamente
+UPDATE JUGADOR j
+SET tiempo_total_seg = COALESCE((
+  SELECT SUM(TIMESTAMPDIFF(SECOND, r.fecha_inicio, r.fecha_fin))
+  FROM RUN r
+  WHERE r.jugador_id = j.jugador_id AND r.fecha_fin IS NOT NULL
+), 0);
+
+# TABLA: NODO (50 filas — nodos de varios mapas)
+# Para simplicidad, cada run tiene entre 3 y 5 nodos de ejemplo.
+INSERT INTO NODO (run_id, tipo, zona, fila_mapa, col_mapa, completado, accesible, enemigo_id) VALUES
+# Run 1 (jugador 2, en progreso zona 2)
+ (1, 'start',  1, 0, 2, TRUE,  TRUE,  NULL),
+ (1, 'combat', 1, 1, 2, TRUE,  TRUE,  1),
+ (1, 'boss',   1, 2, 2, TRUE,  TRUE,  7),
+ (1, 'combat', 2, 3, 2, FALSE, TRUE,  2),
+ (1, 'elite',  2, 4, 3, FALSE, FALSE, 5),
+# Run 2 (jugador 2, victoria)
+ (2, 'start',  1, 0, 2, TRUE,  TRUE,  NULL),
+ (2, 'combat', 1, 1, 1, TRUE,  TRUE,  3),
+ (2, 'boss',   1, 2, 2, TRUE,  TRUE,  7),
+ (2, 'elite',  2, 3, 2, TRUE,  TRUE,  6),
+ (2, 'boss',   3, 4, 2, TRUE,  TRUE,  9),
+# Run 3 (derrota)
+ (3, 'start',  1, 0, 2, TRUE,  TRUE,  NULL),
+ (3, 'combat', 1, 1, 2, TRUE,  TRUE,  1),
+ (3, 'elite',  2, 2, 2, FALSE, TRUE,  5),
+# Run 4 (en progreso)
+ (4, 'start',  1, 0, 2, TRUE,  TRUE,  NULL),
+ (4, 'combat', 1, 1, 2, FALSE, TRUE,  4),
+ (4, 'shop',   1, 2, 1, FALSE, TRUE,  NULL),
+# Run 5 (victoria)
+ (5, 'start',  1, 0, 2, TRUE,  TRUE,  NULL),
+ (5, 'combat', 1, 1, 2, TRUE,  TRUE,  2),
+ (5, 'event',  1, 2, 2, TRUE,  TRUE,  NULL),
+ (5, 'boss',   3, 4, 2, TRUE,  TRUE,  8),
+# Run 6 (derrota)
+ (6, 'start',  1, 0, 2, TRUE,  TRUE,  NULL),
+ (6, 'combat', 1, 1, 2, TRUE,  TRUE,  1),
+ (6, 'elite',  2, 2, 1, FALSE, TRUE,  6),
+# Runs 7-15
+ (7, 'start',  1, 0, 2, TRUE,  TRUE,  NULL),
+ (7, 'combat', 1, 1, 2, FALSE, TRUE,  3),
+ (8, 'combat', 2, 1, 2, TRUE,  TRUE,  4),
+ (9, 'start',  1, 0, 2, TRUE,  TRUE,  NULL),
+ (9, 'boss',   3, 4, 2, TRUE,  TRUE,  9),
+(10, 'combat', 1, 1, 2, FALSE, TRUE,  2),
+(11, 'elite',  2, 2, 3, TRUE,  TRUE,  5),
+(12, 'combat', 1, 1, 2, FALSE, TRUE,  1),
+(13, 'combat', 2, 1, 1, TRUE,  TRUE,  2),
+(14, 'start',  1, 0, 2, TRUE,  TRUE,  NULL),
+(14, 'boss',   3, 4, 2, TRUE,  TRUE,  7),
+(15, 'elite',  2, 2, 2, FALSE, TRUE,  6),
+(16, 'combat', 1, 1, 2, TRUE,  TRUE,  4),
+(17, 'start',  1, 0, 2, TRUE,  TRUE,  NULL),
+(17, 'combat', 2, 1, 2, FALSE, TRUE,  1),
+(18, 'start',  1, 0, 2, FALSE, TRUE,  NULL),
+(19, 'boss',   1, 2, 2, TRUE,  TRUE,  7),
+(20, 'event',  3, 3, 2, TRUE,  TRUE,  NULL),
+(21, 'start',  1, 0, 2, FALSE, TRUE,  NULL),
+(22, 'combat', 2, 1, 2, TRUE,  TRUE,  3),
+(23, 'shop',   2, 2, 3, FALSE, TRUE,  NULL),
+(24, 'start',  1, 0, 2, FALSE, TRUE,  NULL),
+(25, 'combat', 2, 1, 1, FALSE, TRUE,  4),
+(26, 'combat', 1, 1, 2, TRUE,  TRUE,  2),
+(27, 'boss',   3, 4, 2, TRUE,  TRUE,  8),
+(28, 'start',  1, 0, 2, FALSE, TRUE,  NULL),
+(29, 'elite',  2, 2, 2, TRUE,  TRUE,  5),
+(30, 'boss',   3, 4, 2, TRUE,  TRUE,  9);
+
+# TABLA: COMBATE (40 filas)
+INSERT INTO COMBATE (nodo_id, ronda_actual, hp_enemigo, sinergias_activadas, resultado, danio_total_infligido) VALUES
+ (2,  3,  0, 2, 'victoria', 28),
+ (3,  4,  0, 3, 'victoria', 115),
+ (4,  2, 15, 1, NULL,       13),
+ (7,  2,  0, 1, 'victoria', 28),
+ (8,  4,  0, 4, 'victoria', 115),
+ (9,  3,  0, 2, 'victoria', 57),
+(10,  5,  0, 5, 'victoria', 140),
+(12,  2,  0, 1, 'victoria', 28),
+(13,  3, 35, 2, 'derrota',  22),
+(15,  2,  0, 1, 'victoria', 28),
+(18,  1,  0, 0, 'victoria', 28),
+(19,  5,  0, 3, 'victoria', 165),
+(23,  2,  0, 2, 'victoria', 28),
+(24,  3, 20, 1, 'derrota',   8),
+(26,  3,  0, 2, 'victoria', 57),
+(27,  2,  0, 1, 'victoria', 28),
+(29,  3,  0, 2, 'victoria', 28),
+(30,  4,  0, 3, 'victoria',  57),
+(31,  2, 10, 1, 'derrota',  18),
+(32,  2,  0, 1, 'victoria', 28),
+(33,  3,  0, 2, 'victoria', 28),
+(34,  4,  0, 3, 'victoria', 115),
+(35,  2, 25, 1, 'derrota',  32),
+(36,  3,  0, 2, 'victoria', 28),
+(38,  2,  0, 1, 'victoria', 28),
+(40,  4,  0, 3, 'victoria', 115),
+(42,  3,  0, 2, 'victoria', 28),
+(44,  2, 18, 1, 'derrota',  10),
+(46,  2, 12, 1, 'derrota',  16),
+(47,  3,  0, 2, 'victoria', 28),
+(48,  4,  0, 3, 'victoria', 140),
+(50,  3,  0, 2, 'victoria', 57),
+(51,  5,  0, 4, 'victoria', 165),
+ (5,  1, 45, 0, NULL,       12),
+(11,  2, 30, 1, 'derrota',  22),
+(16,  3, 40, 1, 'derrota',  18),
+(20,  2,  0, 1, 'victoria', 28),
+(22,  4,  0, 3, 'victoria', 115),
+(25,  3,  0, 2, 'victoria', 28),
+(28,  1,  0, 0, 'victoria', 28);
+
+# TABLA: COLOCACION_TABLERO (50 filas)
+INSERT INTO COLOCACION_TABLERO (combate_id, pieza_id, col_hex, fila_hex, propietario, ronda) VALUES
+ (1, 'gen_e', 0, 0, 'jugador', 1),
+ (1, 'tr_b',  1, 0, 'jugador', 1),
+ (1, 'cat_r', 2, 1, 'jugador', 1),
+ (1, 'anc_s', 3, 1, 'jugador', 1),
+ (1, 'gen_e', 0, 2, 'jugador', 2),
+ (2, 'gen_h', 1, 1, 'jugador', 1),
+ (2, 'tr_f',  2, 1, 'jugador', 1),
+ (2, 'cat_p', 3, 2, 'jugador', 1),
+ (2, 'anc_f', 4, 2, 'jugador', 1),
+ (2, 'gen_v', 0, 0, 'jugador', 2),
+ (3, 'gen_e', 2, 2, 'jugador', 1),
+ (3, 'tr_b',  3, 2, 'jugador', 1),
+ (4, 'gen_h', 0, 0, 'jugador', 1),
+ (4, 'tr_f',  1, 0, 'jugador', 1),
+ (5, 'gen_p', 1, 1, 'jugador', 1),
+ (5, 'tr_s',  2, 1, 'jugador', 1),
+ (5, 'cat_n', 3, 1, 'jugador', 1),
+ (5, 'anc_x', 4, 2, 'jugador', 1),
+ (5, 'gen_v', 0, 2, 'jugador', 1),
+ (6, 'gen_e', 1, 0, 'jugador', 1),
+ (6, 'tr_b',  2, 0, 'jugador', 1),
+ (6, 'cat_r', 3, 1, 'jugador', 1),
+ (7, 'gen_h', 0, 0, 'jugador', 1),
+ (7, 'tr_f',  1, 1, 'jugador', 1),
+ (7, 'cat_p', 2, 1, 'jugador', 1),
+ (7, 'anc_s', 3, 2, 'jugador', 1),
+ (7, 'gen_v', 4, 2, 'jugador', 1),
+ (8, 'gen_e', 0, 1, 'jugador', 1),
+ (8, 'tr_b',  1, 1, 'jugador', 1),
+ (9, 'gen_e', 2, 2, 'jugador', 1),
+ (9, 'tr_b',  3, 2, 'jugador', 1),
+(10, 'gen_h', 0, 0, 'jugador', 1),
+(10, 'tr_f',  1, 0, 'jugador', 1),
+(10, 'cat_p', 2, 1, 'jugador', 1),
+(10, 'anc_f', 3, 1, 'jugador', 1),
+(12, 'gen_e', 1, 0, 'jugador', 1),
+(12, 'tr_b',  2, 1, 'jugador', 1),
+(13, 'gen_p', 0, 0, 'jugador', 1),
+(13, 'tr_s',  1, 0, 'jugador', 1),
+(13, 'cat_n', 2, 1, 'jugador', 1),
+(13, 'anc_r', 3, 1, 'jugador', 1),
+# Enemigo
+ (1, 'gen_e', 2, 3, 'enemigo', 1),
+ (1, 'tr_b',  3, 3, 'enemigo', 1),
+ (2, 'gen_h', 1, 3, 'enemigo', 1),
+ (2, 'tr_f',  2, 3, 'enemigo', 1),
+ (2, 'anc_f', 3, 4, 'enemigo', 1),
+ (5, 'gen_p', 0, 3, 'enemigo', 1),
+ (5, 'tr_s',  1, 3, 'enemigo', 1),
+ (5, 'cat_n', 2, 4, 'enemigo', 1),
+ (10,'gen_v', 0, 3, 'enemigo', 1),
+ (10,'tr_v',  1, 3, 'enemigo', 1);
+
+# TABLA: INVENTARIO_RUN (40 filas)
+INSERT INTO INVENTARIO_RUN (run_id, pieza_id, cantidad, origen, nodo_adquirido_id) VALUES
+ (1, 'gen_e', 2, 'inicial', NULL),
+ (1, 'tr_b',  1, 'inicial', NULL),
+ (1, 'anc_s', 1, 'inicial', NULL),
+ (1, 'cat_r', 1, 'draft',   2),
+ (1, 'gen_h', 1, 'draft',   3),
+ (2, 'gen_e', 2, 'inicial', NULL),
+ (2, 'tr_b',  1, 'inicial', NULL),
+ (2, 'anc_s', 1, 'inicial', NULL),
+ (2, 'tr_f',  1, 'draft',   7),
+ (2, 'cat_p', 1, 'draft',   9),
+ (2, 'anc_f', 1, 'tienda',  NULL),
+ (3, 'gen_e', 2, 'inicial', NULL),
+ (3, 'tr_b',  1, 'inicial', NULL),
+ (3, 'anc_s', 1, 'inicial', NULL),
+ (4, 'gen_e', 2, 'inicial', NULL),
+ (4, 'tr_b',  1, 'inicial', NULL),
+ (5, 'gen_e', 2, 'inicial', NULL),
+ (5, 'tr_b',  1, 'inicial', NULL),
+ (5, 'gen_v', 1, 'draft',   19),
+ (5, 'cat_n', 1, 'draft',   20),
+ (5, 'tr_s',  1, 'tienda',  NULL),
+ (6, 'gen_e', 2, 'inicial', NULL),
+ (6, 'tr_b',  1, 'inicial', NULL),
+ (7, 'gen_e', 2, 'inicial', NULL),
+ (7, 'tr_b',  1, 'inicial', NULL),
+ (8, 'gen_e', 2, 'inicial', NULL),
+ (8, 'gen_h', 1, 'draft',   26),
+ (9, 'gen_v', 1, 'draft',   28),
+ (9, 'cat_p', 1, 'evento',  NULL),
+(10, 'gen_e', 2, 'inicial', NULL),
+(11, 'tr_f',  1, 'draft',   31),
+(12, 'gen_e', 2, 'inicial', NULL),
+(13, 'cat_r', 2, 'draft',   33),
+(14, 'anc_r', 1, 'evento',  NULL),
+(15, 'gen_h', 1, 'tienda',  NULL),
+(16, 'gen_e', 2, 'inicial', NULL),
+(17, 'tr_s',  1, 'draft',   39),
+(18, 'gen_e', 2, 'inicial', NULL),
+(19, 'anc_f', 1, 'draft',   41),
+(20, 'cat_n', 1, 'evento',  NULL);
+
+# TABLA: EVENTO_NODO (30 filas)
+INSERT INTO EVENTO_NODO (nodo_id, titulo, tipo_efecto, valor_efecto, eleccion_jugador, fecha_resuelto) VALUES
+(19, 'SANTUARIO CURATIVO',  'heal',     25, 'Rezar en el santuario',        '2026-04-19 09:45:00'),
+(41, 'GÉISER DE MANÁ',      'heal',     20, 'Absorber la energía',          '2026-04-20 16:20:00'),
+(16, 'BIBLIOTECA ANTIGUA',  'draft',    0,  'Estudiar los planos raros',    '2026-04-20 20:30:00'),
+(25, 'EXTRAÑO MISTERIOSO',  'draft',    0,  'Aceptar el regalo',            '2026-04-21 09:00:00'),
+(44, 'SANTUARIO CURATIVO',  'heal',     25, 'Rezar en el santuario',        '2026-04-21 14:15:00'),
+(15, 'GÉISER DE MANÁ',      'damage',   15, 'Sobrecargar tu sistema',       '2026-04-18 19:30:00'),
+ (4, 'BIBLIOTECA ANTIGUA',  'draft',    0,  'Estudiar los planos raros',    '2026-04-21 10:45:00'),
+(25, 'EXTRAÑO MISTERIOSO',  'skip',     0,  'Rechazar la oferta',           '2026-04-21 10:10:00'),
+(30, 'GÉISER DE MANÁ',      'heal',     20, 'Absorber la energía',          '2026-04-20 17:00:00'),
+(35, 'SANTUARIO CURATIVO',  'heal',     25, 'Rezar en el santuario',        '2026-04-21 13:45:00'),
+(19, 'BIBLIOTECA ANTIGUA',  'damage',   20, 'Incendiar la biblioteca',      '2026-04-19 10:00:00'),
+(41, 'EXTRAÑO MISTERIOSO',  'draft',    0,  'Aceptar el regalo',            '2026-04-20 19:30:00'),
+(16, 'SANTUARIO CURATIVO',  'heal',     25, 'Rezar en el santuario',        '2026-04-20 20:45:00'),
+(25, 'GÉISER DE MANÁ',      'heal',     20, 'Absorber la energía',          '2026-04-21 11:00:00'),
+(44, 'BIBLIOTECA ANTIGUA',  'draft',    0,  'Estudiar los planos raros',    '2026-04-21 14:30:00'),
+(15, 'EXTRAÑO MISTERIOSO',  'skip',     0,  'Rechazar la oferta',           '2026-04-18 19:45:00'),
+ (4, 'SANTUARIO CURATIVO',  'skip',     0,  'Ignorarlo',                    '2026-04-21 11:00:00'),
+(30, 'BIBLIOTECA ANTIGUA',  'draft',    0,  'Estudiar los planos raros',    '2026-04-20 17:15:00'),
+(35, 'GÉISER DE MANÁ',      'damage',   15, 'Sobrecargar tu sistema',       '2026-04-21 14:00:00'),
+(41, 'SANTUARIO CURATIVO',  'heal',     25, 'Rezar en el santuario',        '2026-04-20 19:15:00'),
+(19, 'GÉISER DE MANÁ',      'heal',     20, 'Absorber la energía',          '2026-04-19 09:30:00'),
+(25, 'SANTUARIO CURATIVO',  'heal',     25, 'Rezar en el santuario',        '2026-04-21 09:15:00'),
+(16, 'EXTRAÑO MISTERIOSO',  'draft',    0,  'Aceptar el regalo',            '2026-04-20 21:00:00'),
+(44, 'GÉISER DE MANÁ',      'heal',     20, 'Absorber la energía',          '2026-04-21 14:45:00'),
+(30, 'EXTRAÑO MISTERIOSO',  'skip',     0,  'Rechazar la oferta',           '2026-04-20 17:30:00'),
+(15, 'SANTUARIO CURATIVO',  'heal',     25, 'Rezar en el santuario',        '2026-04-18 20:00:00'),
+(35, 'EXTRAÑO MISTERIOSO',  'draft',    0,  'Aceptar el regalo',            '2026-04-21 14:15:00'),
+(41, 'BIBLIOTECA ANTIGUA',  'damage',   20, 'Incendiar la biblioteca',      '2026-04-20 19:45:00'),
+(19, 'EXTRAÑO MISTERIOSO',  'draft',    0,  'Aceptar el regalo',            '2026-04-19 10:15:00'),
+(25, 'BIBLIOTECA ANTIGUA',  'skip',     0,  'Alejarte',                     '2026-04-21 09:30:00');
