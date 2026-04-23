@@ -6,8 +6,8 @@ function hexCenter(col, row) {
   // Las filas impares se desplazan para crear el patrón entrelazado de hexágonos
   const offset = (row % 2 === 0) ? 0 : HEX_SIZE * 0.95;
   return {
-    x: 36 + col * HEX_SIZE * 1.85 + offset,
-    y: 36 + row * HEX_SIZE * 1.6,
+    x: 50 + col * HEX_SIZE * 1.85 + offset,
+    y: 96 + row * HEX_SIZE * 1.6,
   };
 }
 

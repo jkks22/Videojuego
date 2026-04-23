@@ -3,9 +3,9 @@
 //dimensiones del tablero hexagonal y límites de jugabilidad
 const GRID_COLS        = 5;
 const GRID_ROWS        = 5;
-const HEX_SIZE         = 32;
-const CANVAS_W         = 340;
-const CANVAS_H         = 340;
+const HEX_SIZE         = 48;
+const CANVAS_W         = 500;
+const CANVAS_H         = 500;
 const PIECES_PER_ROUND = 5;   //piezas que el jugador coloca por ronda
 const SHOP_USES_MAX    = 2;   //veces máximas que se puede usar la tienda por run
 const EVENT_USES_MAX   = 3;   //eventos máximos por run
