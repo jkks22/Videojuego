@@ -5,11 +5,12 @@
 const API = (function () {
 
   const BASE = '/api'; //ruta base de la API
-  let _token = null; //JWT del usuario autenticado
-  let _runId = null; //ID de la run activa en base de datos
-  let _nodoId = null; //ID del nodo actual en base de datos
+  let _token    = null; //JWT del usuario autenticado
+  let _nombre   = null; //nombre del jugador autenticado
+  let _runId    = null; //ID de la run activa en base de datos
+  let _nodoId   = null; //ID del nodo actual en base de datos
   let _combateId = null; //ID del combate activo en base de datos
-  let _ronda = 1; //contador de ronda para el registro de colocaciones
+  let _ronda    = 1; //contador de ronda para el registro de colocaciones
 
   //construye los headers HTTP, incluyendo el token si el usuario está autenticado
   function headers() {
@@ -41,7 +42,8 @@ const API = (function () {
 
   //Auth
   function init() {
-    _token = localStorage.getItem('aa_token') || null;
+    _token  = localStorage.getItem('aa_token')  || null;
+    _nombre = localStorage.getItem('aa_nombre') || null;
   }
 
   function isLoggedIn() { return !!_token; }
@@ -50,8 +52,10 @@ const API = (function () {
     return post('/auth/register', { nombre, email, password })
       .then(function (data) {
         if (data && data.token) {
-          _token = data.token;
-          localStorage.setItem('aa_token', _token);
+          _token  = data.token;
+          _nombre = data.nombre;
+          localStorage.setItem('aa_token',  _token);
+          localStorage.setItem('aa_nombre', _nombre);
         }
         return data;
       });
@@ -61,16 +65,19 @@ const API = (function () {
     return post('/auth/login', { email, password })
       .then(function (data) {
         if (data && data.token) {
-          _token = data.token;
-          localStorage.setItem('aa_token', _token);
+          _token  = data.token;
+          _nombre = data.nombre;
+          localStorage.setItem('aa_token',  _token);
+          localStorage.setItem('aa_nombre', _nombre);
         }
         return data;
       });
   }
 
   function logout() {
-    _token = null; _runId = null; _nodoId = null; _combateId = null;
+    _token = null; _nombre = null; _runId = null; _nodoId = null; _combateId = null;
     localStorage.removeItem('aa_token');
+    localStorage.removeItem('aa_nombre');
   }
 
   //Runs
@@ -219,10 +226,96 @@ const API = (function () {
     getRunId:     function () { return _runId; },
     getNodoId:    function () { return _nodoId; },
     getCombateId: function () { return _combateId; },
+    getNombre:    function () { return _nombre; },
   };
 })();
 
-//inicializar al cargar la pagina (leer token guardado)
+//inicializar al cargar la pagina (leer token guardado y actualizar chip)
 document.addEventListener('DOMContentLoaded', function () {
   API.init();
+  Auth.updateChip();
 });
+
+//controlador de la UI de autenticación (modal login / registro)
+const Auth = (function () {
+
+  function open(tab) {
+    getId('auth-modal').classList.remove('hidden');
+    switchTab(tab || 'login');
+  }
+
+  function close() {
+    getId('auth-modal').classList.add('hidden');
+    _clearErrors();
+  }
+
+  function switchTab(tab) {
+    getId('form-login').classList.toggle('hidden',    tab !== 'login');
+    getId('form-register').classList.toggle('hidden', tab !== 'register');
+    getId('tab-login').classList.toggle('active',     tab === 'login');
+    getId('tab-register').classList.toggle('active',  tab === 'register');
+    _clearErrors();
+  }
+
+  //actualiza el chip de la pantalla de título según el estado de sesión
+  function updateChip() {
+    const nombre = API.getNombre();
+    const chipName = getId('auth-chip-name');
+    const chipBtn  = getId('auth-chip-btn');
+    if (!chipName || !chipBtn) return;
+    if (API.isLoggedIn() && nombre) {
+      chipName.textContent = '👤 ' + nombre.toUpperCase();
+      chipName.classList.remove('hidden');
+      chipBtn.textContent = 'SALIR';
+      chipBtn.onclick = function () { API.logout(); Auth.updateChip(); };
+    } else {
+      chipName.classList.add('hidden');
+      chipBtn.textContent = '🔑 ENTRAR';
+      chipBtn.onclick = function () { Auth.open('login'); };
+    }
+  }
+
+  function submitLogin() {
+    const email    = getId('login-email').value.trim();
+    const password = getId('login-password').value;
+    if (!email || !password) { _setError('login', 'Completa todos los campos.'); return; }
+
+    API.login(email, password).then(function (data) {
+      if (!data || data.error) {
+        _setError('login', data ? data.error : 'Error de conexión.');
+      } else {
+        close();
+        updateChip();
+      }
+    });
+  }
+
+  function submitRegister() {
+    const nombre   = getId('reg-nombre').value.trim();
+    const email    = getId('reg-email').value.trim();
+    const password = getId('reg-password').value;
+    if (!nombre || !email || !password) { _setError('register', 'Completa todos los campos.'); return; }
+
+    API.register(nombre, email, password).then(function (data) {
+      if (!data || data.error) {
+        _setError('register', data ? data.error : 'Error de conexión.');
+      } else {
+        close();
+        updateChip();
+      }
+    });
+  }
+
+  function _setError(form, msg) {
+    const el = getId(form === 'login' ? 'login-error' : 'reg-error');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+
+  function _clearErrors() {
+    getId('login-error').classList.add('hidden');
+    getId('reg-error').classList.add('hidden');
+  }
+
+  return { open, close, switchTab, updateChip, submitLogin, submitRegister };
+})();

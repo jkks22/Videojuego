@@ -1014,3 +1014,113 @@ canvas {
   .chain-piece    { width: 48px; height: 48px; font-size: 1.2rem; }
   .chain-arrow    { font-size: 1rem; }
 }
+
+/*chip de sesión en la pantalla de título*/
+.auth-chip {
+  position: absolute;
+  top: 1rem;
+  right: 1.2rem;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.auth-chip-name {
+  font-family: var(--font-title);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  color: var(--teal);
+  border: 1px solid var(--border);
+  padding: 0.28rem 0.7rem;
+}
+
+/*overlay del modal de auth*/
+.auth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(8, 12, 24, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.auth-modal.hidden { display: none; }
+
+.auth-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 2rem;
+  width: min(380px, 92vw);
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+/*pestañas login / registro*/
+.auth-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.auth-tab {
+  flex: 1;
+  font-family: var(--font-title);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  padding: 0.55rem 0;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.auth-tab.active {
+  color: var(--teal);
+  border-bottom-color: var(--teal);
+}
+
+/*formulario*/
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.auth-form.hidden { display: none; }
+
+.auth-input {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  padding: 0.6rem 0.9rem;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+
+.auth-input::placeholder { color: var(--muted); }
+
+.auth-input:focus { border-color: var(--teal); }
+
+.auth-error {
+  font-size: 0.78rem;
+  color: #FF6B9D;
+  padding: 0.35rem 0;
+}
+
+.auth-error.hidden { display: none; }
+
+.auth-close {
+  align-self: flex-end;
+  margin-top: 0.2rem;
+}
+}

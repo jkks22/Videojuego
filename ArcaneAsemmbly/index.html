@@ -15,6 +15,11 @@
     <div class="title-bg">
       <div id="hexBg" class="hex-grid-bg"></div>
     </div>
+    <!--chip de sesión: muestra nombre del jugador o botón de acceso-->
+    <div id="auth-chip" class="auth-chip">
+      <span id="auth-chip-name" class="auth-chip-name hidden"></span>
+      <button id="auth-chip-btn" class="btn-ghost" onclick="Auth.open('login')">🔑 ENTRAR</button>
+    </div>
     <div class="title-content">
       <div class="title-badge">TC2005B · EQUIPO 4</div>
       <h1 class="game-title">ARCANE<br><span>ASSEMBLY</span></h1>
@@ -23,6 +28,35 @@
       <button class="btn-ghost" onclick="showScreen('screen-rules')">📖 REGLAS</button>
       <button class="btn-ghost" onclick="showScreen('screen-options')">⚙ OPCIONES</button>
       <button class="btn-ghost" onclick="showScreen('screen-credits')">👤 CRÉDITOS</button>
+    </div>
+  </div>
+
+  <!--modal de autenticación (login / registro)-->
+  <div id="auth-modal" class="auth-modal hidden">
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button id="tab-login"    class="auth-tab active" onclick="Auth.switchTab('login')">INICIAR SESIÓN</button>
+        <button id="tab-register" class="auth-tab"        onclick="Auth.switchTab('register')">REGISTRARSE</button>
+      </div>
+
+      <!--formulario de login-->
+      <div id="form-login" class="auth-form">
+        <input id="login-email"    class="auth-input" type="email"    placeholder="Email"       autocomplete="email">
+        <input id="login-password" class="auth-input" type="password" placeholder="Contraseña"  autocomplete="current-password">
+        <div id="login-error" class="auth-error hidden"></div>
+        <button class="btn-primary" onclick="Auth.submitLogin()">ENTRAR →</button>
+      </div>
+
+      <!--formulario de registro-->
+      <div id="form-register" class="auth-form hidden">
+        <input id="reg-nombre"   class="auth-input" type="text"     placeholder="Nombre"      autocomplete="username">
+        <input id="reg-email"    class="auth-input" type="email"    placeholder="Email"       autocomplete="email">
+        <input id="reg-password" class="auth-input" type="password" placeholder="Contraseña"  autocomplete="new-password">
+        <div id="reg-error" class="auth-error hidden"></div>
+        <button class="btn-primary" onclick="Auth.submitRegister()">CREAR CUENTA →</button>
+      </div>
+
+      <button class="btn-ghost auth-close" onclick="Auth.close()">✕ Cerrar</button>
     </div>
   </div>
 
