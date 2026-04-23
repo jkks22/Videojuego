@@ -17,6 +17,13 @@ const Game = {
     this.buildMap(1);
     showScreen('screen-map');
     this.updateHUD();
+    //crear run en BD y registrar el inventario inicial de 4 piezas
+    API.iniciarRun().then(function() {
+      API.agregarInventario('gen_e', 'inicial');
+      API.agregarInventario('gen_e', 'inicial');
+      API.agregarInventario('tr_b',  'inicial');
+      API.agregarInventario('anc_s', 'inicial');
+    });
     if (typeof Tutorial !== 'undefined' && Tutorial.shouldShowOnFirstRun()) {
       Tutorial.open();
     }
@@ -26,6 +33,21 @@ const Game = {
   buildMap: function(zone) {
     State.zone     = zone;
     State.mapNodes = generateMap(zone);
+    //registrar cada nodo en BD; el nodo_id devuelto se guarda en node._dbId para usarlo al entrar
+    for (let i = 0; i < State.mapNodes.length; i++) {
+      (function(node) {
+        API.registrarNodo({
+          tipo:       node.type,
+          zona:       node.zone,
+          fila_mapa:  node.row,
+          col_mapa:   node.col,
+          completado: node.completed,
+          accesible:  node.accessible,
+        }).then(function(data) {
+          if (data && data.nodo_id) node._dbId = data.nodo_id;
+        });
+      })(State.mapNodes[i]);
+    }
     this.renderMap();
   },
 
@@ -68,11 +90,18 @@ const Game = {
     const node = State.currentNode;
     if (node) {
       node.completed = true;
+      API.actualizarNodo(node._dbId, { completado: true });
       //hacer accesibles los nodos hijos para que el jugador pueda elegir su ruta
       for (let i = 0; i < (node.children || []).length; i++)
         for (let j = 0; j < State.mapNodes.length; j++)
-          if (State.mapNodes[j].id === node.children[i]) { State.mapNodes[j].accessible = true; break; }
+          if (State.mapNodes[j].id === node.children[i]) {
+            State.mapNodes[j].accessible = true;
+            API.actualizarNodo(State.mapNodes[j]._dbId, { accesible: true });
+            break;
+          }
     }
+    //sincronizar estado de la run con la BD al terminar cada combate
+    API.actualizarRun({ zona_actual: State.zone, hp_actual: State.hp });
 
     if (node && node.type === 'boss') {
       if (State.zone < 3) {
@@ -94,7 +123,8 @@ const Game = {
         });
         ch.appendChild(btn);
       } else {
-        //las 3 zonas completadas — victoria total
+        //las 3 zonas completadas — marcar victoria en BD y mostrar pantalla final
+        API.actualizarRun({ resultado: 'victoria', hp_actual: State.hp });
         getId('go-icon').textContent  = '🏆';
         getId('go-title').textContent = '¡VICTORIA TOTAL!';
         getId('go-sub').textContent   = 'Completaste las 3 zonas';
@@ -112,6 +142,8 @@ const Game = {
 
   //HP del jugador llegó a 0 mostrar pantalla de game over
   gameOver: function() {
+    //registrar derrota en BD
+    API.actualizarRun({ resultado: 'derrota', hp_actual: 0 });
     getId('go-icon').textContent  = '💀';
     getId('go-title').textContent = 'RUN TERMINADA';
     getId('go-sub').textContent   = 'Zona ' + State.zone + ' · ' + (Combat.currentEnemy ? Combat.currentEnemy.name : '?');

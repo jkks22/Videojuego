@@ -9,6 +9,8 @@ const BattleUI = {
     const enemyData = getRandom(ENEMIES[node.type] || ENEMIES.combat);
     Combat.currentEnemy = enemyData;
     Combat.init(node.zone, node.type);
+    //registrar el combate en BD usando el nodo_id guardado al generar el mapa
+    API.iniciarCombate(node._dbId, Combat.enemyMaxHp);
     boardGenerateEnemy(node.zone, node.type);
     initBattleSprites(enemyData.name, node.type === 'boss');
     showScreen('screen-battle');
@@ -52,7 +54,10 @@ const BattleUI = {
       const cell = hexCellAt(px, py);
       if (!cell) return;
       if (boardGet(cell.col, cell.row, 'player')) { Combat.log('⚠ Casilla ocupada.'); return; }
-      boardPlace(cell.col, cell.row, RoundBuilder.roundPieces[self.selectedIndex].id, 'player');
+      const piezaId = RoundBuilder.roundPieces[self.selectedIndex].id;
+      boardPlace(cell.col, cell.row, piezaId, 'player');
+      //registrar la colocación en BD para estadísticas de uso de piezas
+      API.registrarColocacion(piezaId, cell.col, cell.row, 'jugador');
       SFX.colocar();
       RoundBuilder.markPlaced(self.selectedIndex);
       self.selectedIndex = null;
@@ -120,8 +125,10 @@ const Tooltip = {
 //selección de recompensa
 const Draft = {
   //muestra 3 piezas aleatorias filtradas por zona y rareza mínima
-  show: function(zone, minRarity) {
+  //origen indica cómo se obtuvo la pieza ('draft', 'tienda') para registrarlo en BD
+  show: function(zone, minRarity, origen) {
     if (!minRarity) minRarity = 0;
+    if (!origen)    origen    = 'draft';
     showScreen('screen-draft');
     initDraftSprite();
 
@@ -143,10 +150,14 @@ const Draft = {
         '<div class="dc-type" style="color:' + TYPE_COLORS[piece.type] + '">' + TYPE_LABELS[piece.type] + '</div>' +
         '<div class="dc-desc">' + piece.desc + '</div>' +
         '<div class="dc-rarity" style="color:' + RARITY_COLORS[piece.rarity] + '">' + RARITIES[piece.rarity].toUpperCase() + '</div>';
-      (function(p) {
-        //al hacer clic en una tarjeta se agrega la pieza a la colección y se vuelve al mapa
-        card.addEventListener('click', function() { State.unlockedIds.push(p.id); Game.afterDraft(); });
-      })(piece);
+      (function(p, org) {
+        //al hacer clic en una tarjeta se agrega la pieza a la colección y se registra en BD
+        card.addEventListener('click', function() {
+          State.unlockedIds.push(p.id);
+          API.agregarInventario(p.id, org, State.currentNode ? State.currentNode._dbId : null);
+          Game.afterDraft();
+        });
+      })(piece, origen);
       cont.appendChild(card);
     }
   },
@@ -154,6 +165,8 @@ const Draft = {
 
 //eventos
 const Events = {
+  _currentEvent: null, //evento activo; se guarda en trigger() para usarlo en resolve()
+
   trigger: function() {
     //omitir si el pool está vacío o el jugador ya usó todos los eventos disponibles
     if (EVENT_POOL.length === 0 || State.eventUses >= EVENT_USES_MAX) {
@@ -161,6 +174,7 @@ const Events = {
       return;
     }
     const ev = getRandom(EVENT_POOL);
+    Events._currentEvent = ev;
     showScreen('screen-event');
     initNpcSprite();
     getId('event-icon').textContent  = ev.icon  || '❓';
@@ -183,6 +197,16 @@ const Events = {
 
   //aplica el efecto mecánico de la opción elegida por el jugador
   resolve: function(c) {
+    //mapeo de acciones del frontend al ENUM tipo_efecto de la BD
+    const tipoMap = { heal: 'heal', rare: 'draft', dmg: 'damage', skip: 'skip' };
+    const ev = Events._currentEvent;
+    API.registrarEvento(
+      State.currentNode ? State.currentNode._dbId : null,
+      ev ? ev.title : '',
+      tipoMap[c.action] || 'skip',
+      c.value  || null,
+      c.label  || null
+    );
     if      (c.action === 'heal') { State.hp = Math.min(State.maxHp, State.hp + (c.value || 20)); Draft.show(State.zone); }
     else if (c.action === 'rare') { Draft.show(State.zone, 2); }  // solo piezas de rareza ≥ 2
     else if (c.action === 'dmg')  { State.hp -= (c.value || 10); if (State.hp <= 0) Game.gameOver(); else Game.afterDraft(); }
@@ -196,7 +220,7 @@ const Shop = {
   show: function(zone) {
     if (State.shopUses >= SHOP_USES_MAX) { Game.afterDraft(); return; }
     State.shopUses++;
-    Draft.show(zone, 1); //rareza mínima 1 (poco común)
+    Draft.show(zone, 1, 'tienda'); //rareza mínima 1 (poco común); origen 'tienda' para BD
   },
 };
 

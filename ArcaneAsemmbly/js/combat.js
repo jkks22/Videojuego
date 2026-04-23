@@ -15,11 +15,14 @@ const Combat = {
     if (nodeType === 'elite') base = 45 + zone * 12;
     if (nodeType === 'boss')  base = 90 + zone * 25;
 
-    this.enemyHp      = base;
-    this.enemyMaxHp   = base;
-    this.playerShield = 0;
-    this.running      = false;
-    this.buildRound   = 1;
+    this.enemyHp         = base;
+    this.enemyMaxHp      = base;
+    this.playerShield    = 0;
+    this.running         = false;
+    this.buildRound      = 1;
+    //acumuladores de daño y sinergias para reportar al terminar el combate
+    this._totalDamage    = 0;
+    this._totalSinergias = 0;
 
     getId('log-entries').innerHTML = '';
     getId('last-event').classList.add('hidden');
@@ -195,7 +198,10 @@ const Combat = {
     phEl.classList.add('hidden');
 
     const pr = this.resolveBoard('player');
-    this.playerShield = pr.shield;
+    this.playerShield    = pr.shield;
+    //acumular totales del combate para reportarlos a la BD al finalizar
+    this._totalDamage    += pr.damage;
+    this._totalSinergias += pr.synergyCount;
 
     if (pr.damage > 0) this.log('⚡ Tu tablero genera ' + pr.damage + ' de daño', 'dmg');
     if (pr.shield > 0) this.log('🛡 Escudo: ' + pr.shield + ' pts', 'shld');
@@ -294,6 +300,7 @@ const Combat = {
       this.log('══ ¡VICTORIA! ══', 'vic');
       SFX.victoria();
       fxVictory(window.innerWidth / 2, window.innerHeight * 0.3);
+      API.terminarCombate('victoria', this._totalSinergias, this._totalDamage);
       //las anclas de regeneración curan al jugador tras ganar
       let regen = 0;
       for (let r = 0; r < GRID_ROWS; r++)
@@ -312,6 +319,7 @@ const Combat = {
     if (State.hp <= 0) {
       this.log('══ DERROTA ══', 'def');
       SFX.derrota();
+      API.terminarCombate('derrota', this._totalSinergias, this._totalDamage);
       if (playerAnim) {
         await new Promise(function(resolve) {
           playerAnim.changeDef(SPRITE_DEF.death, false, function() { setTimeout(resolve, 400); });
@@ -324,6 +332,7 @@ const Combat = {
     //ambos sobrevivieron — iniciar la siguiente ronda de construcción
     this.buildRound++;
     this.log('── Enemigo sobrevive (' + Math.max(0, this.enemyHp) + ' HP). Nueva ronda ──', 'info');
+    API.avanzarRonda();
     await waitMs(380);
 
     //el enemigo reconfigura su tablero al inicio de cada nueva ronda
