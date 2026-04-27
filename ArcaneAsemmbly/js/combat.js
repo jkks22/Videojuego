@@ -2,6 +2,7 @@
 
 //módulo Combat
 const Combat = {
+  
   running: false,//true mientras se está resolviendo una ronda (bloquea interacción)
   buildRound: 1,//número de ronda de construcción actual
   enemyHp: 0,//HP actual del enemigo
@@ -30,6 +31,7 @@ const Combat = {
     this.updatePlayerUI();
     this.updateImpulseUI();
   },
+  
 
   /**
    * evalúa el tablero de un lado y retorna todas las salidas de combate
@@ -341,6 +343,7 @@ const Combat = {
     RoundBuilder.startBuildRound();
   },
 };
+
 
 // módulo RoundBuilder
 const RoundBuilder = {

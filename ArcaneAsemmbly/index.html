@@ -98,6 +98,7 @@
 
     <!--hud de arriba-->
     <div class="top-bar battle-bar">
+      <button class="btn-ghost" onclick="Game.pause()">⏸</button>
       <div class="battle-left">
         <span id="node-badge" class="node-badge">COMBATE</span>
         <span id="enemy-name" class="enemy-name-hud">Guardián Arcano</span>
@@ -270,6 +271,25 @@
     <p>Tutorial</p>
     <button class="btn-ghost" onclick="Tutorial.open()">📖 VER TUTORIAL</button>
     <button class="btn-primary" onclick="showScreen('screen-title')">⬅ VOLVER</button>
+  </div>
+</div>
+
+<!--pantalla de pausa-->
+<div id="screen-pause" class="screen">
+  <div class="go-wrap">
+    <h2>Pausa</h2>
+
+    <button class="btn-primary" onclick="Game.resume()">
+      Reanudar
+    </button>
+
+    <button class="btn-ghost" onclick="showScreen('screen-options')">
+      ⚙ Opciones
+    </button>
+
+    <button class="btn-ghost" onclick="Game.restartToTitle()">
+      ⬅ Salir al menú
+    </button>
   </div>
 </div>
 

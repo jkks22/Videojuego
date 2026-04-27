@@ -1,6 +1,8 @@
 //game.js: controlador principal del juego: inicialización de runs, flujo del mapa y condiciones de victoria/derrota
 
 const Game = {
+  isPaused: false,
+  
   //inicia una run nueva: reinicia todo el estado, genera el mapa de zona 1 y lo muestra
   startRun: function() {
     State.run++;
@@ -17,6 +19,14 @@ const Game = {
     this.buildMap(1);
     showScreen('screen-map');
     this.updateHUD();
+    
+    
+
+    
+
+
+  
+    
     //crear run en BD y registrar el inventario inicial de 4 piezas
     API.iniciarRun().then(function() {
       API.agregarInventario('gen_e', 'inicial');
@@ -29,6 +39,25 @@ const Game = {
     }
   },
 
+  pause: function() {
+    // impedir pausa si el combate está corriendo
+    if (Combat.running) return;
+  
+    this.isPaused = true;
+    showScreen('screen-pause');
+  },
+    
+    resume: function() {
+      this.isPaused = false;
+    
+      if (State.currentNode) {
+        showScreen('screen-battle');
+      } else {
+        showScreen('screen-map');
+      }
+    },
+    
+  
   //genera los nodos para la zona indicada y los renderiza en el mapa
   buildMap: function(zone) {
     State.zone     = zone;
@@ -165,6 +194,23 @@ const Game = {
   setVolume:    function(v) { SFX.setVol(parseFloat(v)); },
   setSFXVolume: function(v) { SFX.setVol(parseFloat(v)); },
 };
+// Pausa con la tecla escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const currentScreen = document.querySelector('.screen.active').id;
+
+    // solo permitir pausa si estás en combate
+    if (currentScreen !== 'screen-battle' && currentScreen !== 'screen-pause') {
+      return;
+    }
+
+    if (Game.isPaused) {
+      Game.resume();
+    } else {
+      Game.pause();
+    }
+  }
+});
 
 //construye el fondo animado de polígonos hexagonales de la pantalla de título
 function buildTitleHexBackground() {
