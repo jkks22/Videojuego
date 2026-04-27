@@ -333,15 +333,14 @@ body {
 /*arena de combate*/
 .arena {
   display: grid;
-  /* columnas ajustadas al contenido real del tablero (500px) + centro para el log */
   grid-template-columns: minmax(500px, auto) minmax(260px, 320px) minmax(500px, auto);
   gap: 1.8rem;
   padding: 1rem 1.5rem;
   flex: 1;
   min-height: 0;
   align-items: start;
-  justify-content: center;   /* centra el grid completo en pantallas anchas */
-  max-width: 1500px;         /* evita que se estire demasiado en monitores ultra-wide */
+  justify-content: center;
+  max-width: 1500px;
   margin: 0 auto;
   width: 100%;
 }
@@ -738,6 +737,66 @@ canvas {
 }
 
 
+/* ── PANTALLAS DE REGLAS, OPCIONES Y CRÉDITOS ── */
+#screen-rules,
+#screen-options,
+#screen-credits {
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse 70% 70% at 50% 50%, #091f1c 0%, var(--bg) 70%);
+}
+
+#screen-rules .go-wrap,
+#screen-options .go-wrap,
+#screen-credits .go-wrap {
+  width: 100%;
+  max-width: 700px;
+  padding: 3rem 2rem;
+  justify-content: center;
+  gap: 1.8rem;
+}
+
+#screen-rules h2,
+#screen-options h2,
+#screen-credits h2 {
+  font-family: var(--font-title);
+  font-size: 2.2rem;
+  color: var(--teal);
+  letter-spacing: 0.2em;
+  text-shadow: 0 0 30px rgba(0,229,200,0.4);
+}
+
+#screen-rules p,
+#screen-options p,
+#screen-credits p {
+  font-size: 1.05rem;
+  line-height: 2.4;
+  color: var(--white);
+  text-align: center;
+  max-width: 560px;
+}
+
+#screen-options input[type="range"] {
+  width: 300px;
+  accent-color: var(--teal);
+  cursor: pointer;
+}
+
+#screen-rules .btn-primary,
+#screen-options .btn-primary,
+#screen-credits .btn-primary {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  padding: 0.9rem 3rem;
+}
+
+#screen-options .btn-ghost {
+  font-size: 0.78rem;
+  padding: 0.55rem 1.4rem;
+}
+/* ─────────────────────────────────────────────── */
+
+
 /* tooltip */
 .tooltip {
   position: fixed;
@@ -1122,5 +1181,4 @@ canvas {
 .auth-close {
   align-self: flex-end;
   margin-top: 0.2rem;
-}
 }
