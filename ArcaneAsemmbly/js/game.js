@@ -52,7 +52,8 @@ const Game = {
   },
 
   renderMap: function() {
-    var self = this, cont = getId('map-container');
+    const self = this;
+    const cont = getId('map-container');
     cont.innerHTML = '';
     cont.appendChild(renderMap(State.mapNodes, function(node) { self.enterNode(node); }));
   },
