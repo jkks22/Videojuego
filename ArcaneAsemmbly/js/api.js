@@ -1,4 +1,3 @@
-
 //api.js: módulo de comunicación entre el cliente del juego y la API REST del servidor.
 //todas las llamadas son opcionales: si el jugador no está autenticado, se omiten
 
@@ -239,6 +238,11 @@ document.addEventListener('DOMContentLoaded', function () {
 //controlador de la UI de autenticación (modal login / registro)
 const Auth = (function () {
 
+  //bandera interna: si es true, después de un login/registro exitoso se inicia la run automáticamente
+  //se usa cuando el jugador presiona "Iniciar Run" sin sesión activa
+  let _pendingStartRun = false;
+  function setPendingStartRun(v) { _pendingStartRun = v; }
+
   function open(tab) {
     getId('auth-modal').classList.remove('hidden');
     switchTab(tab || 'login');
@@ -286,6 +290,11 @@ const Auth = (function () {
       } else {
         close();
         updateChip();
+        //si el modal se abrió desde "Iniciar Run", arrancar la run automáticamente
+        if (_pendingStartRun) {
+          _pendingStartRun = false;
+          Game.startRun();
+        }
       }
     });
   }
@@ -302,6 +311,11 @@ const Auth = (function () {
       } else {
         close();
         updateChip();
+        //si el modal se abrió desde "Iniciar Run", arrancar la run automáticamente
+        if (_pendingStartRun) {
+          _pendingStartRun = false;
+          Game.startRun();
+        }
       }
     });
   }
@@ -310,12 +324,15 @@ const Auth = (function () {
     const el = getId(form === 'login' ? 'login-error' : 'reg-error');
     el.textContent = msg;
     el.classList.remove('hidden');
+    el.classList.remove('auth-info'); //limpiar la clase informativa si la había
   }
 
   function _clearErrors() {
-    getId('login-error').classList.add('hidden');
-    getId('reg-error').classList.add('hidden');
+    const le = getId('login-error');
+    const re = getId('reg-error');
+    if (le) { le.classList.add('hidden'); le.classList.remove('auth-info'); }
+    if (re) { re.classList.add('hidden'); re.classList.remove('auth-info'); }
   }
 
-  return { open, close, switchTab, updateChip, submitLogin, submitRegister };
+  return { open, close, switchTab, updateChip, submitLogin, submitRegister, setPendingStartRun };
 })();
