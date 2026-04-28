@@ -35,6 +35,7 @@ const Game = {
     this.buildMap(1);
     showScreen('screen-map');
     this.updateHUD();
+    this.saveProgress();
     
     
 
@@ -186,6 +187,7 @@ const Game = {
     }
     //sincronizar estado de la run con la BD al terminar cada combate
     API.actualizarRun({ zona_actual: State.zone, hp_actual: State.hp });
+    this.saveProgress();
 
     if (node && node.type === 'boss') {
       if (State.zone < 3) {
@@ -213,6 +215,7 @@ const Game = {
         getId('go-title').textContent = '¡VICTORIA TOTAL!';
         getId('go-sub').textContent   = 'Completaste las 3 zonas';
         this.showStats();
+        localStorage.removeItem('arcane_progress');
         showScreen('screen-gameover');
       }
       return;
@@ -221,7 +224,7 @@ const Game = {
     Draft.show(State.zone);
   },
 
-  afterDraft: function() { this.updateHUD(); this.renderMap(); showScreen('screen-map'); },
+  afterDraft: function() { this.updateHUD(); this.renderMap(); showScreen('screen-map'); this.saveProgress(); },
   skipDraft: function()  { this.afterDraft(); },
 
   //HP del jugador llegó a 0 mostrar pantalla de game over
@@ -233,6 +236,7 @@ const Game = {
     getId('go-sub').textContent   = 'Zona ' + State.zone + ' · ' + (Combat.currentEnemy ? Combat.currentEnemy.name : '?');
     this.showStats();
     showScreen('screen-gameover');
+    localStorage.removeItem('arcane_progress');
   },
 
   //llena la grilla de estadísticas en la pantalla de game over / victoria
@@ -270,6 +274,13 @@ document.addEventListener('keydown', function(e) {
 
 let previousScreen = "screen-title";
 function openOptionsFromPause() {
+  //Funcion nivel de fractura
+  function updateFractureLevel(){
+    const fractureElement = document.getItem('fracture-level') || 0;
+    if (fractureElement){
+      fractureElement.textContent = 'Nivel de fractura: ';
+    }
+  }
   previousScreen = "screen-pause";
   showScreen("screen-options");
 }
