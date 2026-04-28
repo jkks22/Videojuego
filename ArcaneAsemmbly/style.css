@@ -1178,6 +1178,14 @@ canvas {
 
 .auth-error.hidden { display: none; }
 
+/* variante informativa: cuando el modal se abre desde "Iniciar Run" sin sesión,
+   el mensaje no es un error sino una invitación a registrarse, así que se
+   muestra en color dorado en lugar de rojo */
+.auth-error.auth-info {
+  color: #FFD166;
+  font-weight: 500;
+}
+
 .auth-close {
   align-self: flex-end;
   margin-top: 0.2rem;
