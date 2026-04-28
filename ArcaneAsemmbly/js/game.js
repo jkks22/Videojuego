@@ -56,6 +56,45 @@ const Game = {
         showScreen('screen-map');
       }
     },
+
+    // Gurdar el progreso actual de la run en localStorage para poder reanudarla después
+    saveProgress: function() {
+      const progress = {
+        run: State.run,
+        hp: State.hp,
+        maxHp: State.maxHp,
+        impulse: State.impulse,
+        maxImpulse: State.maxImpulse,
+        zone: State.zone,
+        combatsWon: State.combatsWon,
+        unlockedIds: State.unlockedIds,
+        shopUses: State.shopUses,
+        eventUses: State.eventUses,
+      };
+      localStorage.setItem('arcane_progress', JSON.stringify(progress));
+      console.log('Progreso guardado:');
+    },
+
+    // Cargar el progreso guardado de localStorage al iniciar el juego
+
+  loadProgress: function() {
+    const progress = localStorage.getItem('arcane_progress');
+    if (progress) {
+      const data = JSON.parse(progress);
+      State.run = data.run || 0;
+      State.hp = data.hp || 100;
+      State.maxHp = data.maxHp || 100;
+      State.impulse = data.impulse || 3;
+      State.maxImpulse = data.maxImpulse || 3;
+      State.zone = data.zone || 1;
+      State.combatsWon = data.combatsWon || 0;
+      State.unlockedIds = data.unlockedIds || ['gen_e', 'gen_e', 'tr_b', 'anc_s'];
+      State.shopUses = data.shopUses || 0;
+      State.eventUses = data.eventUses || 0;
+    }
+  },
+
+
     
   
   //genera los nodos para la zona indicada y los renderiza en el mapa
@@ -252,6 +291,7 @@ document.querySelectorAll('button').forEach(btn => {
 document.addEventListener('DOMContentLoaded', function() {
   fxInit();
   boardInit();
+  Game.loadProgress();
   window.addEventListener('resize', fxResize);
   buildTitleHexBackground();
   showScreen('screen-title');
