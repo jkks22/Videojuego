@@ -15,6 +15,7 @@
     <div class="title-bg">
       <div id="hexBg" class="hex-grid-bg"></div>
     </div>
+    
     <!--chip de sesión: muestra nombre del jugador o botón de acceso-->
     <div id="auth-chip" class="auth-chip">
       <span id="auth-chip-name" class="auth-chip-name hidden"></span>
@@ -270,7 +271,7 @@
     <input type="range" id="sfx-slider" min="0" max="1" step="0.01" value="0.5" onchange="Game.setSFXVolume(this.value)"> 
     <p>Tutorial</p>
     <button class="btn-ghost" onclick="Tutorial.open()">📖 VER TUTORIAL</button>
-    <button class="btn-primary" onclick="showScreen('screen-title')">⬅ VOLVER</button>
+    <button class="btn-ghost" onclick="showScreen(previousScreen)">⬅ VOLVER</button>
   </div>
 </div>
 
@@ -283,7 +284,7 @@
       Reanudar
     </button>
 
-    <button class="btn-ghost" onclick="showScreen('screen-options')">
+    <button class="btn-ghost" onclick="openOptionsFromPause()">
       ⚙ Opciones
     </button>
 

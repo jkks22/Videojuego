@@ -266,6 +266,16 @@ document.addEventListener('keydown', function(e) {
     }
   }
 });
+// Regresa a la pantalla anterior al abrir opciones desde pausa, para no perder el contexto del combate.
+
+let previousScreen = "screen-title";
+function openOptionsFromPause() {
+  previousScreen = "screen-pause";
+  showScreen("screen-options");
+}
+
+
+
 
 //construye el fondo animado de polígonos hexagonales de la pantalla de título
 function buildTitleHexBackground() {

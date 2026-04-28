@@ -84,6 +84,14 @@ body {
   gap: 1.2rem;
 }
 
+#fracture-level {
+  font-size: 20px;
+  margin: 20px 0;
+  color: #ff4d6d;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
 .title-badge {
   font-family: var(--font-title);
   font-size: 0.6rem;
