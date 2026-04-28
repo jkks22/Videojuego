@@ -1,6 +1,24 @@
 //game.js: controlador principal del juego: inicialización de runs, flujo del mapa y condiciones de victoria/derrota
 
 const Game = {
+  //valida sesión activa antes de permitir iniciar una run
+  //si no hay sesión, abre el modal de login con un mensaje informativo
+  //y deja una bandera para que la run arranque automáticamente tras el login
+  tryStartRun: function() {
+    if (!API.isLoggedIn()) {
+      Auth.setPendingStartRun(true);
+      Auth.open('login');
+      const err = getId('login-error');
+      if (err) {
+        err.textContent = 'Inicia sesión o regístrate para jugar y guardar tu progreso.';
+        err.classList.remove('hidden');
+        err.classList.add('auth-info');
+      }
+      return;
+    }
+    this.startRun();
+  },
+
   //inicia una run nueva: reinicia todo el estado, genera el mapa de zona 1 y lo muestra
   startRun: function() {
     State.run++;
