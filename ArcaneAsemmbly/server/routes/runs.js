@@ -167,6 +167,11 @@ router.post('/:id/nodos/:nid/combate', async (req, res) => {
   const nodo_id = parseInt(req.params.nid);
   const { hp_enemigo } = req.body;
 
+  //validar que nodo_id sea un número válido — si el cliente envía undefined/NaN,
+  if (!nodo_id || isNaN(nodo_id)) {
+    return res.status(400).json({ error: 'nodo_id inválido' });
+  }
+
   try {
     //relación 1:1 con NODO: si ya existe el combate, devolverlo en lugar de crear duplicado
     const [existente] = await pool.query(
@@ -245,26 +250,15 @@ router.post('/:id/inventario', async (req, res) => {
   const run_id = parseInt(req.params.id);
   const { pieza_id, cantidad, origen, nodo_adquirido_id } = req.body;
   try {
-    //si la pieza con el mismo origen ya existe en el inventario, sumamos cantidad
-    //(la PK compuesta de INVENTARIO_RUN es run_id + pieza_id + origen)
-    const [existe] = await pool.query(
-      `SELECT cantidad FROM INVENTARIO_RUN
-       WHERE run_id = ? AND pieza_id = ? AND origen = ?`,
-      [run_id, pieza_id, origen]
+    //usar INSERT ... ON DUPLICATE KEY UPDATE para evitar race conditions cuando
+    //el cliente envía varias piezas iguales en paralelo (por ejemplo 2x gen_e iniciales)
+    //la PK compuesta de INVENTARIO_RUN es (run_id, pieza_id, origen)
+    await pool.query(
+      `INSERT INTO INVENTARIO_RUN (run_id, pieza_id, cantidad, origen, nodo_adquirido_id)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE cantidad = cantidad + VALUES(cantidad)`,
+      [run_id, pieza_id, cantidad || 1, origen, nodo_adquirido_id || null]
     );
-    if (existe.length > 0) {
-      await pool.query(
-        `UPDATE INVENTARIO_RUN SET cantidad = cantidad + ?
-         WHERE run_id = ? AND pieza_id = ? AND origen = ?`,
-        [cantidad || 1, run_id, pieza_id, origen]
-      );
-    } else {
-      await pool.query(
-        `INSERT INTO INVENTARIO_RUN (run_id, pieza_id, cantidad, origen, nodo_adquirido_id)
-         VALUES (?, ?, ?, ?, ?)`,
-        [run_id, pieza_id, cantidad || 1, origen, nodo_adquirido_id || null]
-      );
-    }
     res.status(201).json({ ok: true });
   } catch (err) {
     console.error('POST /inventario error:', err);

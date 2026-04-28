@@ -18,7 +18,7 @@ app.use(cors());
 app.use(express.json());
 
 //archivos estáticos del juego (index.html, css, js, assets)
-//el cliente está en la carpeta hermana ArcaneAsemmbly (subiendo un nivel desde server/)
+//el cliente está un nivel arriba, en la carpeta ArcaneAsemmbly que contiene a server/
 app.use(express.static(path.join(__dirname, '..')));
 
 //rutas de la api
@@ -32,7 +32,7 @@ app.use('/api/admin', adminRoutes);
 
 //ruta raíz: servir el index del juego
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..' , 'index.html'));
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
 //manejador de errores global (último middleware)
