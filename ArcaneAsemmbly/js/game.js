@@ -36,6 +36,9 @@ const Game = {
     showScreen('screen-map');
     this.updateHUD();
     this.saveProgress();
+    State.fracture = 0;
+    updateFractureUI();
+
     
     
 
@@ -87,6 +90,7 @@ const Game = {
         unlockedIds: State.unlockedIds,
         shopUses: State.shopUses,
         eventUses: State.eventUses,
+        fracture: State.fracture
       };
       localStorage.setItem('arcane_progress', JSON.stringify(progress));
       console.log('Progreso guardado:');
@@ -108,6 +112,8 @@ const Game = {
       State.unlockedIds = data.unlockedIds || ['gen_e', 'gen_e', 'tr_b', 'anc_s'];
       State.shopUses = data.shopUses || 0;
       State.eventUses = data.eventUses || 0;
+      State.fracture = data.fracture || 0;
+      updateFractureUI();
     }
   },
 
@@ -172,6 +178,8 @@ const Game = {
 
   //se llama al ganar un combate: marca el nodo, desbloquea hijos, avanza o termina
   afterCombatVictory: function() {
+    State.fracture = (State.fracture || 0) + 1;
+    updateFractureUI();
     const node = State.currentNode;
     if (node) {
       node.completed = true;
@@ -190,6 +198,9 @@ const Game = {
     this.saveProgress();
 
     if (node && node.type === 'boss') {
+
+      State.fracture = (State.fracture || 0) + 2;
+      updateFractureUI();
       if (State.zone < 3) {
         //zona completada — ofrecer recompensa y avanzar a la siguiente zona
         showScreen('screen-event');
@@ -274,13 +285,7 @@ document.addEventListener('keydown', function(e) {
 
 let previousScreen = "screen-title";
 function openOptionsFromPause() {
-  //Funcion nivel de fractura
-  function updateFractureLevel(){
-    const fractureElement = document.getItem('fracture-level') || 0;
-    if (fractureElement){
-      fractureElement.textContent = 'Nivel de fractura: ';
-    }
-  }
+  //Funcion nivel de fractura: al abrir opciones desde pausa, guardar la pantalla actual para volver a ella al cerrar opciones
   previousScreen = "screen-pause";
   showScreen("screen-options");
 }

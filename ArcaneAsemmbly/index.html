@@ -25,6 +25,7 @@
       <div class="title-badge">TC2005B · EQUIPO 4</div>
       <h1 class="game-title">ARCANE<br><span>ASSEMBLY</span></h1>
       <p class="game-subtitle">Roguelite · Construcción de Tablero Táctico</p>
+      <p id="fracture-title" class="fracture-display">Fractura: 0</p>
       <button class="btn-primary pulse" onclick="Game.tryStartRun()">⚡ INICIAR RUN</button>
       <button class="btn-ghost" onclick="showScreen('screen-rules')">📖 REGLAS</button>
       <button class="btn-ghost" onclick="showScreen('screen-options')">⚙ OPCIONES</button>
@@ -104,6 +105,7 @@
         <span id="node-badge" class="node-badge">COMBATE</span>
         <span id="enemy-name" class="enemy-name-hud">Guardián Arcano</span>
       </div>
+      <div id="fracture-battle" class="fracture-display">Fractura: 0</div>
       <div class="battle-hud">
         <span class="hud-lbl">HP</span>
         <div class="hud-bar">
@@ -287,7 +289,7 @@
     <button class="btn-ghost" onclick="showScreen('screen-map')">
       🗺 Regresar al mapa
     </button>
-    
+
     <button class="btn-ghost" onclick="openOptionsFromPause()">
       ⚙ Opciones
     </button>

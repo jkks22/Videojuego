@@ -326,3 +326,11 @@ function renderMap(nodes, onClickNode) {
   }
   return svg;
 }
+// nivel de fractura
+function updateFractureUI() {
+  const title = getId("fracture-title");
+  const battle = getId("fracture-battle");
+
+  if (title) title.textContent = `Fractura: ${State.fracture || 0}`;
+  if (battle) battle.textContent = `Fractura: ${State.fracture || 0}`;
+}

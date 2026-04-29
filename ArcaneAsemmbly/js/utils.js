@@ -51,6 +51,7 @@ function showScreen(id) {
   const all = document.querySelectorAll('.screen');
   for (let i = 0; i < all.length; i++) all[i].classList.remove('active');
   getId(id).classList.add('active');
+  updateFractureUI();
 }
 
 //muestra un número de daño flotante en las coordenadas de pantalla (x, y)
