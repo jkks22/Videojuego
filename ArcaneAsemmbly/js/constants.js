@@ -129,15 +129,15 @@ const EVENT_POOL = [
 //definiciones de hojas de sprites — cols/rows describen el layout de la hoja
 //offsetRow se usa cuando múltiples animaciones comparten la misma imagen
 const SPRITE_DEF = {
-  idle:        { src:'assets/sprites/idle.png',           cols:5,  rows:1, frameW:106, frameH:22,  totalFrames:5,  fps:8  },
-  attack:      { src:'assets/sprites/attack.png',         cols:11, rows:1, frameW:106, frameH:22,  totalFrames:11, fps:12 },
-  death:       { src:'assets/sprites/death.png',          cols:5,  rows:1, frameW:106, frameH:22,  totalFrames:5,  fps:8  },
-  damaged:     { src:'assets/sprites/damaged.png',        cols:2,  rows:1, frameW:106, frameH:22,  totalFrames:2,  fps:8  },
+  idle: { src:'assets/sprites/ingenieroarcano.png', cols:8, rows:1, frameW:120, frameH:160, totalFrames:8, fps:8 },
+  attack:  { src:'assets/sprites/ingenieroattack.png',  cols:6, rows:1, frameW:160, frameH:160, totalFrames:6, fps:12 },
+  death:   { src:'assets/sprites/ingenierodeath.png',   cols:6, rows:1, frameW:160, frameH:160, totalFrames:6, fps:8  },
+  damaged: { src:'assets/sprites/ingenierodamaged.png', cols:4, rows:1, frameW:240, frameH:160, totalFrames:4, fps:8  },
 
-  necroIdle:   { src:'assets/sprites/necromancerIDLE.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:8,  offsetRow:0 },
-  necroAttack: { src:'assets/sprites/necromancerATTACK.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:10, offsetRow:2 },
-  necroHurt:   { src:'assets/sprites/necromancerHURT.png',    cols:8,  rows:4, frameW:128, frameH:140, totalFrames:8,  fps:8,  offsetRow:1 },
-  necroDeath:  { src:'assets/sprites/necromancerDEATH.png',    cols:5,  rows:4, frameW:128, frameH:140, totalFrames:5,  fps:8,  offsetRow:3 },
+  necroIdle:   { src:'assets/sprites/mago.png',    cols:10,  rows:4, frameW:96, frameH:160, totalFrames:10,  fps:8 },
+  necroAttack: { src:'assets/sprites/magoattack.png',    cols:6,  rows:4, frameW:160, frameH:160, totalFrames:8,  fps:10 },
+  necroHurt:   { src:'assets/sprites/magodamaged.png',    cols:6,  rows:4, frameW:160, frameH:160, totalFrames:8,  fps:8 },
+  necroDeath:  { src:'assets/sprites/magodeath.png',    cols:5,  rows:4, frameW:192, frameH:160, totalFrames:8,  fps:8 },
 
   golemIdle:   { src:'assets/sprites/Golem_1_idle.png',   cols:8,  rows:1, frameW:90,  frameH:64,  totalFrames:8,  fps:8  },
   golemAttack: { src:'assets/sprites/Golem_1_attack.png', cols:11, rows:1, frameW:90,  frameH:64,  totalFrames:11, fps:12 },
