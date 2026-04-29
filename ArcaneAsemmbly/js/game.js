@@ -38,6 +38,11 @@ const Game = {
     this.saveProgress();
     State.fracture = 0;
     updateFractureUI();
+    previousScreen = "screen-map";
+    openOptionsFromPause = function() {
+      previousScreen = "screen-pause";
+      showScreen("screen-options");
+    }
 
     
     
