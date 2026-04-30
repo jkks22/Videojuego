@@ -272,6 +272,13 @@ router.post('/:id/inventario', async (req, res) => {
 router.post('/:id/nodos/:nid/evento', async (req, res) => {
   const nodo_id = parseInt(req.params.nid);
   const { titulo, tipo_efecto, valor_efecto, eleccion_jugador } = req.body;
+
+  //validar que nodo_id sea un número válido — si el cliente envía undefined/NaN,
+  //el endpoint falla aquí en vez de propagar 'NaN' a la query SQL
+  if (!nodo_id || isNaN(nodo_id)) {
+    return res.status(400).json({ error: 'nodo_id inválido' });
+  }
+
   try {
     const [result] = await pool.query(
       `INSERT INTO EVENTO_NODO (nodo_id, titulo, tipo_efecto, valor_efecto, eleccion_jugador, fecha_resuelto)
