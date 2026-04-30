@@ -1,5 +1,5 @@
 # Arcane Assembly — schema.sql (VERSIÓN 2)
-# Equipo 4 · TC2005B · ESPORA Videojuegos
+# Equipo 4 · TC2005B
 
 DROP DATABASE IF EXISTS arcane_assembly;
 CREATE DATABASE arcane_assembly
@@ -186,6 +186,23 @@ CREATE TABLE EVENTO_NODO (
   PRIMARY KEY (evento_id),
   CONSTRAINT fk_evento_nodo FOREIGN KEY (nodo_id)
     REFERENCES NODO(nodo_id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+# TABLA: META_JUGADOR_COLECCION (meta-progresion entre runs)
+# PK compuesta: (jugador_id, pieza_id) — un jugador descubre cada pieza una sola vez en su historia
+# Atributos: fecha_descubierta para saber cuando consiguio la pieza por primera vez
+# Forma Normal: 3FN — fecha_descubierta depende solo de la PK compuesta
+# Esta tabla habilita la meta-progresion: las piezas descubiertas en runs pasadas
+# se quedan disponibles en futuras runs del mismo jugador, dando sensacion de progreso permanente
+CREATE TABLE META_JUGADOR_COLECCION (
+  jugador_id        INT           NOT NULL,
+  pieza_id          VARCHAR(20)   NOT NULL,
+  fecha_descubierta DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (jugador_id, pieza_id),
+  CONSTRAINT fk_meta_jugador FOREIGN KEY (jugador_id)
+    REFERENCES JUGADOR(jugador_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_meta_pieza FOREIGN KEY (pieza_id)
+    REFERENCES PIEZA(pieza_id) ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
 # VISTAS (12)
@@ -390,6 +407,42 @@ FROM JUGADOR j
 WHERE j.rol = 'jugador'
 ORDER BY ultima_run DESC;
 
+# Vista 13: coleccion permanente de piezas por jugador con porcentaje de completado
+# Calcula cuantas piezas distintas ha descubierto cada jugador a lo largo de todas sus runs
+# y compara contra el total del catalogo para mostrar progreso de meta-progresion
+CREATE OR REPLACE VIEW v_coleccion_jugador AS
+SELECT
+  j.jugador_id,
+  j.nombre,
+  COUNT(mjc.pieza_id) AS piezas_descubiertas,
+  (SELECT COUNT(*) FROM PIEZA) AS piezas_totales,
+  ROUND(COUNT(mjc.pieza_id) / (SELECT COUNT(*) FROM PIEZA) * 100, 1) AS pct_completado
+FROM JUGADOR j
+LEFT JOIN META_JUGADOR_COLECCION mjc ON j.jugador_id = mjc.jugador_id
+WHERE j.rol = 'jugador'
+GROUP BY j.jugador_id, j.nombre;
+
+# Vista 14: estadisticas globales del sistema para el panel de admin
+# Reune todas las metricas que el panel administrativo muestra en una sola query
+# Incluye totales, tasas de victoria, tiempo total y promedios
+CREATE OR REPLACE VIEW v_estadisticas_globales AS
+SELECT
+  (SELECT COUNT(*) FROM JUGADOR WHERE rol='jugador')                  AS total_jugadores,
+  (SELECT COUNT(*) FROM JUGADOR WHERE rol='jugador' AND activo=1)     AS jugadores_activos,
+  (SELECT COUNT(*) FROM RUN)                                          AS total_runs,
+  (SELECT COUNT(*) FROM RUN WHERE resultado='victoria')               AS total_victorias,
+  (SELECT COUNT(*) FROM RUN WHERE resultado='derrota')                AS total_derrotas,
+  (SELECT COUNT(*) FROM RUN WHERE resultado='en_progreso')            AS runs_en_progreso,
+  (SELECT ROUND(SUM(tiempo_total_seg) / 3600, 1) FROM JUGADOR)        AS horas_totales_jugadas,
+  (SELECT COUNT(*) FROM COMBATE)                                      AS combates_totales,
+  (SELECT ROUND(AVG(sinergias_activadas), 2) FROM COMBATE)            AS promedio_sinergias_combate,
+  (SELECT ROUND(AVG(danio_total_infligido), 0) FROM COMBATE
+   WHERE resultado='victoria')                                         AS danio_promedio_victoria,
+  ROUND(
+    (SELECT COUNT(*) FROM RUN WHERE resultado='victoria') * 100.0 /
+    NULLIF((SELECT COUNT(*) FROM RUN WHERE resultado IN ('victoria','derrota')), 0)
+  , 1) AS tasa_victoria_pct;
+
 # TRIGGERS (4)
 
 DELIMITER $$
@@ -451,6 +504,23 @@ BEGIN
     SET zona_actual = LEAST(zona_actual + 1, 3)
     WHERE run_id = NEW.run_id;
   END IF;
+END$$
+
+# Trigger 5: descubrir pieza permanentemente al agregarla al inventario de una run
+# Cada vez que el jugador obtiene una pieza (origen 'inicial', 'draft', 'tienda', 'evento')
+# se registra en META_JUGADOR_COLECCION para que aparezca en futuras runs (meta-progresion).
+# Usa INSERT IGNORE: si ya descubrio la pieza antes, no duplica el registro
+CREATE TRIGGER trg_descubrir_pieza
+AFTER INSERT ON INVENTARIO_RUN
+FOR EACH ROW
+BEGIN
+  DECLARE v_jugador_id INT;
+  SELECT jugador_id INTO v_jugador_id
+  FROM RUN
+  WHERE run_id = NEW.run_id;
+
+  INSERT IGNORE INTO META_JUGADOR_COLECCION (jugador_id, pieza_id)
+  VALUES (v_jugador_id, NEW.pieza_id);
 END$$
 
 
@@ -536,3 +606,17 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+# MIGRACION DE DATOS EXISTENTES
+# Si ya hay runs jugadas con piezas en INVENTARIO_RUN, las pasamos a META_JUGADOR_COLECCION
+# para que los jugadores existentes ya tengan su coleccion poblada con lo que descubrieron antes.
+# INSERT IGNORE evita duplicar si la migracion se corre dos veces.
+# La fecha_descubierta toma la primera vez que el jugador obtuvo la pieza.
+INSERT IGNORE INTO META_JUGADOR_COLECCION (jugador_id, pieza_id, fecha_descubierta)
+SELECT
+  r.jugador_id,
+  ir.pieza_id,
+  MIN(r.fecha_inicio) AS fecha_descubierta
+FROM RUN r
+JOIN INVENTARIO_RUN ir ON r.run_id = ir.run_id
+GROUP BY r.jugador_id, ir.pieza_id;
