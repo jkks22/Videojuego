@@ -3,18 +3,26 @@
 const Game = {
   //valida sesión activa antes de permitir iniciar una run
   //si no hay sesión, abre el modal de login con un mensaje informativo
-  //y deja una bandera para que la run arranque automáticamente tras el login
+  //blindado: si el módulo Auth no está disponible, igual arranca la run para no bloquear al jugador
   tryStartRun: function() {
-    if (!API.isLoggedIn()) {
-      Auth.setPendingStartRun(true);
-      Auth.open('login');
-      const err = getId('login-error');
-      if (err) {
-        err.textContent = 'Inicia sesión o regístrate para jugar y guardar tu progreso.';
-        err.classList.remove('hidden');
-        err.classList.add('auth-info');
+    try {
+      if (typeof API === 'undefined' || !API.isLoggedIn()) {
+        if (typeof Auth !== 'undefined' && Auth.setPendingStartRun) {
+          Auth.setPendingStartRun(true);
+          Auth.open('login');
+          const err = getId('login-error');
+          if (err) {
+            err.textContent = 'Inicia sesión o regístrate para jugar y guardar tu progreso.';
+            err.classList.remove('hidden');
+            err.classList.add('auth-info');
+          }
+          return;
+        }
+        //fallback: si por alguna razón Auth no existe, jugar sin validar
+        console.warn('Auth no disponible, iniciando run sin validar sesión');
       }
-      return;
+    } catch (e) {
+      console.warn('Error validando sesión, iniciando run igualmente:', e);
     }
     this.startRun();
   },
@@ -51,7 +59,10 @@ const Game = {
   buildMap: function(zone) {
     State.zone     = zone;
     State.mapNodes = generateMap(zone);
-    //registrar cada nodo en BD; el nodo_id devuelto se guarda en node._dbId para usarlo al entrar
+
+    //registrar cada nodo en BD; el id devuelto se guarda en node._dbId
+    //las llamadas son fire-and-forget: el mapa se renderiza inmediato sin esperar a la BD
+    //esto evita que el juego se cuelgue si la BD no responde
     for (let i = 0; i < State.mapNodes.length; i++) {
       (function(node) {
         API.registrarNodo({
@@ -63,9 +74,11 @@ const Game = {
           accesible:  node.accessible,
         }).then(function(data) {
           if (data && data.nodo_id) node._dbId = data.nodo_id;
-        });
+        }).catch(function() { /* errores tragados para no romper el juego */ });
       })(State.mapNodes[i]);
     }
+
+    //renderizar el mapa inmediatamente, sin esperar a la BD
     this.renderMap();
   },
 
@@ -99,8 +112,9 @@ const Game = {
     State.currentNode = node;
     if (node.type === 'shop')  { Shop.show(State.zone);  return; }
     if (node.type === 'event') { Events.trigger();        return; }
-    showScreen('screen-battle');
-    BattleUI.setup(node);
+    //para nodos de combate (combat/elite/boss): pasar primero por la pantalla de armar mazo
+    //el jugador elige sus 5 piezas, y al confirmar se llama a BattleUI.setup(node)
+    DeckBuilder.show(node);
   },
 
   //se llama al ganar un combate: marca el nodo, desbloquea hijos, avanza o termina
@@ -108,13 +122,15 @@ const Game = {
     const node = State.currentNode;
     if (node) {
       node.completed = true;
-      API.actualizarNodo(node._dbId, { completado: true });
+      if (node._dbId) API.actualizarNodo(node._dbId, { completado: true });
       //hacer accesibles los nodos hijos para que el jugador pueda elegir su ruta
       for (let i = 0; i < (node.children || []).length; i++)
         for (let j = 0; j < State.mapNodes.length; j++)
           if (State.mapNodes[j].id === node.children[i]) {
             State.mapNodes[j].accessible = true;
-            API.actualizarNodo(State.mapNodes[j]._dbId, { accesible: true });
+            if (State.mapNodes[j]._dbId) {
+              API.actualizarNodo(State.mapNodes[j]._dbId, { accesible: true });
+            }
             break;
           }
     }
@@ -187,9 +203,7 @@ const Game = {
 //construye el fondo animado de polígonos hexagonales de la pantalla de título
 function buildTitleHexBackground() {
   const cont = getId('hexBg'); if (!cont) return;
-  const ns   = 'http://www.w3.org/2000/svg'; //se utiliza como un identificador único para diferenciar
-  //los gráficos vectoriales de otros elementos HTML o XML y para crear elementos SVG con createElementNS
-  //en este caso se usa para construir el fondo animado de la pantalla de título con hexágonos generados
+  const ns   = 'http://www.w3.org/2000/svg';
   const svg  = document.createElementNS(ns, 'svg');
   svg.setAttribute('width', '100%');
   svg.setAttribute('height', '100%');
@@ -207,7 +221,6 @@ function buildTitleHexBackground() {
       }
       poly.setAttribute('points', pts.join(' '));
       poly.setAttribute('fill', 'none');
-      //selecciona aleatoriamente una pequeña fracción de hexágonos con color
       const rnd = Math.random();
       poly.setAttribute('stroke', rnd < 0.06 ? '#00E5C833' : rnd < 0.1 ? '#FFD16622' : '#1E305015');
       svg.appendChild(poly);

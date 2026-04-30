@@ -105,7 +105,7 @@ SpriteAnimator.prototype._tick = function(now) {
 //
 // Cómo se indexan los frames (sx / sy):
 //   La hoja está organizada en columnas y filas de celdas de igual tamaño.
-//   • sx (source X) = (frame % cols) * frameW
+//   • sx (source X) = (sourceFrame % cols) * frameW
 //       El resto de dividir el índice del frame entre el número de columnas
 //       da la columna actual dentro de la fila → multiplicada por el ancho
 //       de cada frame obtiene el píxel X de inicio en la imagen.
@@ -127,9 +127,10 @@ SpriteAnimator.prototype._tick = function(now) {
 SpriteAnimator.prototype._draw = function() {
   if (!this.ctx || !this.img) return;
   const d  = this.def;
+  const sourceFrame = this.frame + (d.offsetCol || 0);
   //calcular posición del frame dentro de la hoja de sprites
-  const sx = (this.frame % d.cols) * d.frameW;
-  const sy = (d.offsetRow !== undefined ? d.offsetRow : Math.floor(this.frame / d.cols)) * d.frameH;
+  const sx = (sourceFrame % d.cols) * d.frameW;
+  const sy = (d.offsetRow !== undefined ? d.offsetRow : Math.floor(sourceFrame / d.cols)) * d.frameH;
   const cw = this.canvas.width;
   const ch = this.canvas.height;
 
@@ -174,7 +175,7 @@ let merchantAnim = null;
 let npcAnim      = null;
 
 //configura los animadores del jugador y el enemigo al entrar a una pantalla de combate
-function initBattleSprites(nombreEnemigo, isBoss) {
+function initBattleSprites(nombreEnemigo, nodeType) {
   if (playerAnim) playerAnim.stop();
   if (enemyAnim)  enemyAnim.stop();
 
@@ -183,9 +184,9 @@ function initBattleSprites(nombreEnemigo, isBoss) {
 
   //el sprite del enemigo depende de la zona y si es un jefe
   let defE;
-  if (isBoss) defE = SPRITE_DEF.bossIdle;
-  else if (State.zone <= 1) defE = SPRITE_DEF.necroIdle;
-  else defE = SPRITE_DEF.golemIdle;
+  if (nodeType === 'boss') defE = SPRITE_DEF.bossIdle;
+  else if (nodeType === 'elite') defE = SPRITE_DEF.golemIdle;
+  else defE = SPRITE_DEF.necroIdle;
 
   enemyAnim = new SpriteAnimator('sprite-enemy', defE, true);
   getId('sprite-enemy-name').textContent = nombreEnemigo || 'Enemigo';
@@ -223,8 +224,8 @@ function playEnemyAttack(onDone) {
 
   let atk, idle;
   if (isBoss) { atk = SPRITE_DEF.bossAttack;  idle = SPRITE_DEF.bossIdle; }
-  else if (State.zone <= 1) { atk = SPRITE_DEF.necroAttack; idle = SPRITE_DEF.necroIdle; }
-  else { atk = SPRITE_DEF.golemAttack; idle = SPRITE_DEF.golemIdle; }
+  else if (State.currentNode && State.currentNode.type === 'elite') { atk = SPRITE_DEF.golemAttack; idle = SPRITE_DEF.golemIdle; }
+  else { atk = SPRITE_DEF.necroAttack; idle = SPRITE_DEF.necroIdle; }
 
   enemyAnim.changeDef(atk, false, function() {
     setTimeout(function() {
@@ -244,7 +245,7 @@ function playEnemyDeath(onDone) {
       if (ENEMIES.boss[i].name === Combat.currentEnemy.name) { isBoss = true; break; }
 
   const die = isBoss ? SPRITE_DEF.bossDeath
-            : (State.zone <= 1 ? SPRITE_DEF.necroDeath : SPRITE_DEF.golemDie);
+            : ((State.currentNode && State.currentNode.type === 'elite') ? SPRITE_DEF.golemDie : SPRITE_DEF.necroDeath);
 
   enemyAnim.changeDef(die, false, function() {
     setTimeout(function() { if (onDone) onDone(); }, 400);

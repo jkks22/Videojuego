@@ -189,6 +189,9 @@ const API = (function () {
   //nodo_id: el id del nodo de tipo event
   function registrarEvento(nodo_id, titulo, tipo_efecto, valor_efecto, eleccion) {
     if (!isLoggedIn() || !_runId) return Promise.resolve(null);
+    //protegerse contra nodo_id invalido (undefined, null, NaN) — puede ocurrir si el cliente
+    //llama antes de que registrarNodo() haya respondido con el id real
+    if (!nodo_id || isNaN(nodo_id)) return Promise.resolve(null);
     return post('/runs/' + _runId + '/nodos/' + nodo_id + '/evento', {
       titulo,
       tipo_efecto,

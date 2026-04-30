@@ -182,6 +182,11 @@ const Combat = {
   //ejecuta una ronda de combate completa de forma asíncrona
   runRound: async function() {
     if (this.running) return;
+    //si el jugador dejo una pieza levantada, devolverla a su origen
+    //antes de resolver para que no se pierda
+    if (typeof BattleUI !== 'undefined' && BattleUI.movingPiece) {
+      BattleUI._cancelMove();
+    }
     if (boardCount('player') === 0) { this.log('⚠ Coloca al menos una pieza.'); return; }
 
     this.running = true;
@@ -252,8 +257,9 @@ const Combat = {
           if (ENEMIES.boss[i].name === Combat.currentEnemy.name) { isBoss = true; break; }
 
       if (enemyAnim && this.enemyHp > 0 && !isBoss) {
-        const hd  = State.zone <= 1 ? SPRITE_DEF.necroHurt  : SPRITE_DEF.golemHurt;
-        const id2 = State.zone <= 1 ? SPRITE_DEF.necroIdle  : SPRITE_DEF.golemIdle;
+        const useGolem = State.currentNode && State.currentNode.type === 'elite';
+        const hd  = useGolem ? SPRITE_DEF.golemHurt : SPRITE_DEF.necroHurt;
+        const id2 = useGolem ? SPRITE_DEF.golemIdle : SPRITE_DEF.necroIdle;
         enemyAnim.changeDef(hd, false, function() {
           setTimeout(function() { if (enemyAnim) enemyAnim.changeDef(id2, true); }, 80);
         });
@@ -310,6 +316,8 @@ const Combat = {
         }
       if (regen > 0) { State.hp = Math.min(State.maxHp, State.hp + regen); this.log('💚 Anclas: +' + regen + ' HP', 'shld'); }
       State.combatsWon++;
+      //limpiar el mazo elegido para que el proximo combate abra el deck builder de nuevo
+      RoundBuilder.combatDeck = null;
       await waitMs(700);
       Game.afterCombatVictory();
       return;
@@ -320,6 +328,8 @@ const Combat = {
       this.log('══ DERROTA ══', 'def');
       SFX.derrota();
       API.terminarCombate('derrota', this._totalSinergias, this._totalDamage);
+      //limpiar el mazo elegido (la run termina, pero por consistencia)
+      RoundBuilder.combatDeck = null;
       if (playerAnim) {
         await new Promise(function(resolve) {
           playerAnim.changeDef(SPRITE_DEF.death, false, function() { setTimeout(resolve, 400); });
@@ -346,23 +356,32 @@ const Combat = {
 const RoundBuilder = {
   roundPieces: [], //piezas disponibles para colocar en esta ronda
   placed:      0,  //cuántas piezas ha colocado el jugador hasta ahora
+  combatDeck:  null, //mazo de 5 piezas elegido por el jugador en DeckBuilder.confirm()
+                     //se reutiliza en todas las rondas del combate hasta que termine
 
   //configura una nueva ronda de construcción: limpia el tablero y reparte piezas nuevas
   startBuildRound: function() {
     boardClear('player');
     this.placed = 0;
 
-    //pool = catálogo filtrado por rareza de zona + colección desbloqueada del jugador
-    const pool = [];
-    for (let i = 0; i < CATALOG.length; i++)
-      if (CATALOG[i].rarity <= Math.min(State.zone, 3)) pool.push(CATALOG[i]);
-    for (let i = 0; i < State.unlockedIds.length; i++) {
-      const p = getPiece(State.unlockedIds[i]);
-      if (p) pool.push(p);
+    //si el jugador armo un mazo en la pantalla DeckBuilder, usar esas 5 piezas
+    //si no (modo legacy o falla), generar piezas aleatorias del catalogo
+    if (this.combatDeck && this.combatDeck.length === PIECES_PER_ROUND) {
+      //copia defensiva para que cada ronda empiece con las mismas piezas
+      this.roundPieces = this.combatDeck.slice();
+    } else {
+      //fallback: pool = catalogo filtrado por rareza de zona + coleccion del jugador
+      const pool = [];
+      for (let i = 0; i < CATALOG.length; i++)
+        if (CATALOG[i].rarity <= Math.min(State.zone, 3)) pool.push(CATALOG[i]);
+      for (let i = 0; i < State.unlockedIds.length; i++) {
+        const p = getPiece(State.unlockedIds[i]);
+        if (p) pool.push(p);
+      }
+      this.roundPieces = [];
+      for (let i = 0; i < PIECES_PER_ROUND; i++)
+        this.roundPieces.push(pool[Math.floor(Math.random() * pool.length)]);
     }
-    this.roundPieces = [];
-    for (let i = 0; i < PIECES_PER_ROUND; i++)
-      this.roundPieces.push(pool[Math.floor(Math.random() * pool.length)]);
 
     this.renderPieces();
     this.updateLabels();
