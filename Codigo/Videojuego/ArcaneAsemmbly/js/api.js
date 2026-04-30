@@ -6,6 +6,8 @@ const API = (function () {
   const BASE = '/api'; //ruta base de la API
   let _token    = null; //JWT del usuario autenticado
   let _nombre   = null; //nombre del jugador autenticado
+  let _rol      = null; //rol del jugador: 'jugador' o 'admin'
+  let _coleccion = null; //coleccion permanente de piezas (cargada al login)
   let _runId    = null; //ID de la run activa en base de datos
   let _nodoId   = null; //ID del nodo actual en base de datos
   let _combateId = null; //ID del combate activo en base de datos
@@ -43,9 +45,11 @@ const API = (function () {
   function init() {
     _token  = localStorage.getItem('aa_token')  || null;
     _nombre = localStorage.getItem('aa_nombre') || null;
+    _rol    = localStorage.getItem('aa_rol')    || null;
   }
 
   function isLoggedIn() { return !!_token; }
+  function isAdmin()    { return _rol === 'admin'; }
 
   function register(nombre, email, password) {
     return post('/auth/register', { nombre, email, password })
@@ -53,8 +57,10 @@ const API = (function () {
         if (data && data.token) {
           _token  = data.token;
           _nombre = data.nombre;
+          _rol    = data.rol || 'jugador';
           localStorage.setItem('aa_token',  _token);
           localStorage.setItem('aa_nombre', _nombre);
+          localStorage.setItem('aa_rol',    _rol);
         }
         return data;
       });
@@ -66,17 +72,53 @@ const API = (function () {
         if (data && data.token) {
           _token  = data.token;
           _nombre = data.nombre;
+          _rol    = data.rol || 'jugador';
           localStorage.setItem('aa_token',  _token);
           localStorage.setItem('aa_nombre', _nombre);
+          localStorage.setItem('aa_rol',    _rol);
         }
         return data;
       });
   }
 
   function logout() {
-    _token = null; _nombre = null; _runId = null; _nodoId = null; _combateId = null;
+    _token = null; _nombre = null; _rol = null; _coleccion = null;
+    _runId = null; _nodoId = null; _combateId = null;
     localStorage.removeItem('aa_token');
     localStorage.removeItem('aa_nombre');
+    localStorage.removeItem('aa_rol');
+  }
+
+  //meta-progresion: cargar la coleccion permanente del jugador autenticado
+  //devuelve { resumen, piezas } donde piezas es array de objetos pieza
+  //llamar tras login para que startRun pueda usar las piezas descubiertas
+  function cargarColeccion() {
+    if (!isLoggedIn()) return Promise.resolve(null);
+    return get('/jugador/coleccion').then(function(data) {
+      if (data && data.piezas) _coleccion = data;
+      return data;
+    });
+  }
+
+  //devuelve la coleccion en cache (sin volver a llamar al servidor)
+  function getColeccion() { return _coleccion; }
+
+  //devuelve solo los IDs de piezas descubiertas (util para State.unlockedIds)
+  function getColeccionIds() {
+    if (!_coleccion || !_coleccion.piezas) return [];
+    return _coleccion.piezas.map(function(p) { return p.pieza_id; });
+  }
+
+  //datos del perfil del jugador autenticado (victorias, derrotas, total runs)
+  function cargarPerfil() {
+    if (!isLoggedIn()) return Promise.resolve(null);
+    return get('/jugador/perfil');
+  }
+
+  //solo admins: estadisticas globales para el panel
+  function cargarGlobalStats() {
+    if (!isLoggedIn() || !isAdmin()) return Promise.resolve(null);
+    return get('/admin/global-stats');
   }
 
   //Runs
@@ -189,9 +231,6 @@ const API = (function () {
   //nodo_id: el id del nodo de tipo event
   function registrarEvento(nodo_id, titulo, tipo_efecto, valor_efecto, eleccion) {
     if (!isLoggedIn() || !_runId) return Promise.resolve(null);
-    //protegerse contra nodo_id invalido (undefined, null, NaN) — puede ocurrir si el cliente
-    //llama antes de que registrarNodo() haya respondido con el id real
-    if (!nodo_id || isNaN(nodo_id)) return Promise.resolve(null);
     return post('/runs/' + _runId + '/nodos/' + nodo_id + '/evento', {
       titulo,
       tipo_efecto,
@@ -204,9 +243,16 @@ const API = (function () {
   return {
     init,
     isLoggedIn,
+    isAdmin,
     register,
     login,
     logout,
+    //meta-progresion
+    cargarColeccion,
+    getColeccion,
+    getColeccionIds,
+    cargarPerfil,
+    cargarGlobalStats,
     //runs
     iniciarRun,
     actualizarRun,
@@ -229,6 +275,7 @@ const API = (function () {
     getNodoId:    function () { return _nodoId; },
     getCombateId: function () { return _combateId; },
     getNombre:    function () { return _nombre; },
+    getRol:       function () { return _rol; },
   };
 })();
 
@@ -236,6 +283,11 @@ const API = (function () {
 document.addEventListener('DOMContentLoaded', function () {
   API.init();
   Auth.updateChip();
+  //si hay sesion activa, cargar la coleccion permanente del jugador
+  //asi al iniciar una run, las piezas descubiertas ya estan disponibles
+  if (API.isLoggedIn()) {
+    API.cargarColeccion();
+  }
 });
 
 //controlador de la UI de autenticación (modal login / registro)
@@ -266,22 +318,46 @@ const Auth = (function () {
 
   //actualiza el chip de la pantalla de título según el estado de sesión
   function updateChip() {
-    const nombre = API.getNombre();
-    const chipName = getId('auth-chip-name');
-    const chipBtn  = getId('auth-chip-btn');
-    if (!chipName || !chipBtn) return;
-    if (API.isLoggedIn() && nombre) {
-      chipName.textContent = '👤 ' + nombre.toUpperCase();
-      chipName.classList.remove('hidden');
-      chipBtn.textContent = 'SALIR';
-      chipBtn.onclick = function () { API.logout(); Auth.updateChip(); };
-    } else {
-      chipName.classList.add('hidden');
-      chipBtn.textContent = '🔑 ENTRAR';
-      chipBtn.onclick = function () { Auth.open('login'); };
+  const nombre   = API.getNombre();
+  const chipName = getId('auth-chip-name');
+  const chipBtn  = getId('auth-chip-btn');
+  const adminBtn = getId('btn-admin-panel');
+
+  if (!chipName || !chipBtn) return;
+
+  if (API.isLoggedIn() && nombre) {
+    chipName.textContent = '👤 ' + nombre.toUpperCase();
+    chipName.classList.remove('hidden');
+
+    chipBtn.textContent = 'SALIR';
+    chipBtn.onclick = function () {
+      API.logout();
+      Auth.updateChip();
+    };
+
+    //mostrar u ocultar el botón del panel admin al cargar, volver al menú o cerrar sesión
+    if (adminBtn) {
+      if (API.isAdmin()) {
+        adminBtn.classList.remove('hidden');
+      } else {
+        adminBtn.classList.add('hidden');
+      }
+    }
+
+  } else {
+    chipName.classList.add('hidden');
+
+    chipBtn.textContent = '🔑 ENTRAR';
+    chipBtn.onclick = function () {
+      Auth.open('login');
+    };
+
+    //si no hay sesión, siempre ocultar panel admin
+    if (adminBtn) {
+      adminBtn.classList.add('hidden');
     }
   }
-
+  }
   function submitLogin() {
     const email    = getId('login-email').value.trim();
     const password = getId('login-password').value;
@@ -293,6 +369,10 @@ const Auth = (function () {
       } else {
         close();
         updateChip();
+        //cargar la coleccion permanente del jugador en background
+        API.cargarColeccion().then(function() {
+          _refreshAdminButton();
+        });
         //si el modal se abrió desde "Iniciar Run", arrancar la run automáticamente
         if (_pendingStartRun) {
           _pendingStartRun = false;
@@ -314,6 +394,10 @@ const Auth = (function () {
       } else {
         close();
         updateChip();
+        //cargar coleccion (estara vacia para usuarios nuevos pero la inicializa)
+        API.cargarColeccion().then(function() {
+          _refreshAdminButton();
+        });
         //si el modal se abrió desde "Iniciar Run", arrancar la run automáticamente
         if (_pendingStartRun) {
           _pendingStartRun = false;
@@ -321,6 +405,15 @@ const Auth = (function () {
         }
       }
     });
+  }
+
+  //muestra u oculta el boton del panel admin segun el rol
+  //solo aparece si el usuario logueado es admin
+  function _refreshAdminButton() {
+    const btn = getId('btn-admin-panel');
+    if (!btn) return;
+    if (API.isAdmin()) btn.classList.remove('hidden');
+    else                btn.classList.add('hidden');
   }
 
   function _setError(form, msg) {

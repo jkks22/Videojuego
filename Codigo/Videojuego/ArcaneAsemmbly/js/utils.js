@@ -14,6 +14,7 @@ const State = {
   unlockedIds:  ['gen_e', 'gen_e', 'tr_b', 'anc_s'],//piezas en la colección del jugador
   shopUses: 0,//veces que se usó la tienda en esta run
   eventUses: 0,//eventos que se han activado en esta run
+  fracture: 0,//nivel de fractura: contador de progreso del jugador entre runs
 };
 
 //atajo para document.getElementById
@@ -51,6 +52,17 @@ function showScreen(id) {
   const all = document.querySelectorAll('.screen');
   for (let i = 0; i < all.length; i++) all[i].classList.remove('active');
   getId(id).classList.add('active');
+  //refrescar el contador de fractura cada vez que se cambia de pantalla
+  updateFractureUI();
+}
+
+//actualiza los contadores de Fractura en la pantalla de titulo y combate
+//se llama cada vez que se gana un combate o se cambia de pantalla
+function updateFractureUI() {
+  const title  = getId('fracture-title');
+  const battle = getId('fracture-battle');
+  if (title)  title.textContent  = 'Fractura: ' + (State.fracture || 0);
+  if (battle) battle.textContent = 'Fractura: ' + (State.fracture || 0);
 }
 
 //muestra un número de daño flotante en las coordenadas de pantalla (x, y)
@@ -133,3 +145,13 @@ const SFX = (function() {
     },
   };
 })();
+
+//variable global: pantalla anterior antes de abrir opciones
+//permite volver al lugar correcto al cerrar opciones (mapa, pausa, titulo)
+let previousScreen = "screen-title";
+
+//abrir opciones desde la pantalla de pausa, recordando el contexto para volver
+function openOptionsFromPause() {
+  previousScreen = "screen-pause";
+  showScreen("screen-options");
+}

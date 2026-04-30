@@ -135,9 +135,9 @@ const SPRITE_DEF = {
   damaged: { src:'assets/sprites/ingenierodamaged.png', cols:4, rows:1, frameW:240, frameH:160, totalFrames:4, fps:8  },
 
   necroIdle:   { src:'assets/sprites/necromancer_green_idle.png',   cols:10, rows:1, frameW:96, frameH:160, totalFrames:10, fps:5 },
-  necroAttack: { src:'assets/sprites/necromancer_green_attack.png', cols:10, rows:1, frameW:96, frameH:160, totalFrames:10, fps:7 },
-  necroHurt:   { src:'assets/sprites/necromancer_green_hurt.png',   cols:10, rows:1, frameW:96, frameH:160, totalFrames:10, fps:6 },
-  necroDeath:  { src:'assets/sprites/necromancer_green_death.png',  cols:10, rows:1, frameW:96, frameH:160, totalFrames:9,  fps:5, offsetCol:1 },
+  necroAttack: { src:'assets/sprites/necromancer_green_attack.png', cols:6, rows:1, frameW:160, frameH:160, totalFrames:6, fps:12 },
+  necroHurt:   { src:'assets/sprites/necromancer_green_hurt.png',   cols:6, rows:1, frameW:160, frameH:160, totalFrames:6, fps:6 },
+  necroDeath:  { src:'assets/sprites/necromancer_green_death.png',  cols:5, rows:1, frameW:192, frameH:160, totalFrames:5,  fps:5, offsetCol:1 },
 
   golemIdle:   { src:'assets/sprites/Golem_1_idle.png',   cols:8,  rows:1, frameW:90,  frameH:64,  totalFrames:8,  fps:8  },
   golemAttack: { src:'assets/sprites/Golem_1_attack.png', cols:11, rows:1, frameW:90,  frameH:64,  totalFrames:11, fps:12 },

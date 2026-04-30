@@ -27,6 +27,8 @@
       <button class="btn-primary pulse" onclick="Game.tryStartRun()">⚡ INICIAR RUN</button>
       <button class="btn-ghost" onclick="showScreen('screen-rules')">📖 REGLAS</button>
       <button class="btn-ghost" onclick="showScreen('screen-options')">⚙ OPCIONES</button>
+      <button class="btn-ghost" onclick="Coleccion.show()">📚 MI COLECCIÓN</button>
+      <button id="btn-admin-panel" class="btn-ghost hidden" onclick="AdminPanel.show()">📊 PANEL ADMIN</button>
       <button class="btn-ghost" onclick="showScreen('screen-credits')">👤 CRÉDITOS</button>
     </div>
   </div>
@@ -286,12 +288,39 @@
 <div id="screen-options" class="screen">
   <div class="go-wrap">
     <h2>⚙ OPCIONES</h2>
+
     <p>Volumen del juego </p>
     <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5" onchange="Game.setVolume(this.value)">
+
     <p> Volumen de SFX</p>
     <input type="range" id="sfx-slider" min="0" max="1" step="0.01" value="0.5" onchange="Game.setSFXVolume(this.value)"> 
+
+    <p>Accesibilidad</p>
+    <button id="contrast-btn" class="btn-ghost" onclick="Game.toggleHighContrast()">
+      alto contraste: off
+    </button>
+
     <p>Tutorial</p>
     <button class="btn-ghost" onclick="Tutorial.open()">📖 VER TUTORIAL</button>
+    <button class="btn-primary" onclick="showScreen('screen-title')">⬅ VOLVER</button>
+  </div>
+</div>
+
+<!--pantalla MI COLECCION: muestra todas las piezas descubiertas por el jugador-->
+<div id="screen-coleccion" class="screen">
+  <div class="col-wrap">
+    <h2 class="col-title">📚 MI COLECCIÓN</h2>
+    <p class="col-sub">Piezas descubiertas a lo largo de todas tus runs</p>
+    <div id="coleccion-content" class="col-content"></div>
+    <button class="btn-primary" onclick="showScreen('screen-title')">⬅ VOLVER</button>
+  </div>
+</div>
+
+<!--pantalla PANEL ADMIN: estadisticas globales (solo accesible para admins)-->
+<div id="screen-admin" class="screen">
+  <div class="admin-wrap">
+    <h2 class="admin-title">📊 PANEL ADMINISTRADOR</h2>
+    <div id="admin-content" class="admin-content"></div>
     <button class="btn-primary" onclick="showScreen('screen-title')">⬅ VOLVER</button>
   </div>
 </div>
@@ -336,9 +365,9 @@
   <script src="js/constants.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/fx.js"></script>
-  <script src="js/sprites.js"></script>
   <script src="js/board.js"></script>
   <script src="js/combat.js"></script>
+  <script src="js/sprites.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/api.js"></script>
   <script src="js/tutorial.js"></script>

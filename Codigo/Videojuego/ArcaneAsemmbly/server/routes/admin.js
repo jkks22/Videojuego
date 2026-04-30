@@ -154,4 +154,83 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+//GET /api/admin/global-stats
+//estadisticas globales del sistema usando la vista v_estadisticas_globales
+//incluye totales, tasas de victoria, tiempo total y promedios
+//mas detallado que /stats: agrega top 10 jugadores y top 10 piezas
+router.get('/global-stats', async (req, res) => {
+  try {
+    //metricas globales en una sola query
+    const [[stats]] = await pool.query('SELECT * FROM v_estadisticas_globales');
+
+    //top 10 jugadores por victorias usando la vista existente
+    const [top_jugadores] = await pool.query(
+      'SELECT * FROM v_ranking_jugadores LIMIT 10'
+    );
+
+    //top 10 piezas mas usadas
+    const [top_piezas] = await pool.query(
+      `SELECT p.pieza_id, p.nombre, p.tipo, p.rareza,
+              COUNT(*) AS veces_usada
+       FROM COLOCACION_TABLERO ct
+       JOIN PIEZA p ON ct.pieza_id = p.pieza_id
+       WHERE ct.propietario = 'jugador'
+       GROUP BY p.pieza_id, p.nombre, p.tipo, p.rareza
+       ORDER BY veces_usada DESC LIMIT 10`
+    );
+
+    //distribucion de runs por zona
+    const [por_zona] = await pool.query('SELECT * FROM v_tasa_victoria_zona');
+
+    //progreso de coleccion de todos los jugadores (de la vista nueva)
+    const [colecciones] = await pool.query(
+      `SELECT * FROM v_coleccion_jugador
+       ORDER BY piezas_descubiertas DESC LIMIT 10`
+    );
+
+    res.json({
+      stats,
+      top_jugadores,
+      top_piezas,
+      por_zona,
+      colecciones,
+    });
+  } catch (err) {
+    console.error('GET /admin/global-stats error:', err);
+    res.status(500).json({ error: 'Error al obtener estadisticas globales' });
+  }
+});
+
+//GET /api/admin/coleccion-jugador/:id
+//ver la coleccion completa de piezas descubiertas por un jugador especifico
+//util para el panel admin al revisar el progreso de un jugador
+router.get('/coleccion-jugador/:id', async (req, res) => {
+  const jugador_id = parseInt(req.params.id);
+  if (!jugador_id || isNaN(jugador_id)) {
+    return res.status(400).json({ error: 'jugador_id invalido' });
+  }
+  try {
+    const [piezas] = await pool.query(
+      `SELECT mjc.pieza_id, p.nombre, p.tipo, p.rareza,
+              p.descripcion, mjc.fecha_descubierta
+       FROM META_JUGADOR_COLECCION mjc
+       JOIN PIEZA p ON mjc.pieza_id = p.pieza_id
+       WHERE mjc.jugador_id = ?
+       ORDER BY mjc.fecha_descubierta DESC`,
+      [jugador_id]
+    );
+
+    //resumen de progreso de coleccion del jugador
+    const [[resumen]] = await pool.query(
+      'SELECT * FROM v_coleccion_jugador WHERE jugador_id = ?',
+      [jugador_id]
+    );
+
+    res.json({ resumen, piezas });
+  } catch (err) {
+    console.error('GET /admin/coleccion-jugador/:id error:', err);
+    res.status(500).json({ error: 'Error al obtener coleccion del jugador' });
+  }
+});
+
 module.exports = router;

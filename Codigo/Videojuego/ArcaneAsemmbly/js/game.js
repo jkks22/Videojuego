@@ -36,7 +36,14 @@ const Game = {
     State.maxImpulse = 3;
     State.zone = 1;
     State.combatsWon = 0;
-    State.unlockedIds = ['gen_e', 'gen_e', 'tr_b', 'anc_s'];
+
+    //meta-progresion: el inventario inicial son las 4 piezas iniciales + toda la coleccion
+    //que el jugador haya descubierto en runs anteriores (cargada de BD al login)
+    const piezasIniciales = ['gen_e', 'gen_e', 'tr_b', 'anc_s'];
+    const coleccion       = (typeof API !== 'undefined' && API.getColeccionIds) ? API.getColeccionIds() : [];
+    //combinar sin duplicar las iniciales que ya esten en la coleccion
+    State.unlockedIds = piezasIniciales.concat(coleccion);
+
     State.shopUses = 0;
     State.eventUses = 0;
     boardInit();
@@ -52,6 +59,33 @@ const Game = {
     });
     if (typeof Tutorial !== 'undefined' && Tutorial.shouldShowOnFirstRun()) {
       Tutorial.open();
+    }
+  },
+
+  toggleHighContrast: function() {
+    const enabled = document.body.classList.toggle('high-contrast');
+    localStorage.setItem('aa_high_contrast', enabled ? '1' : '0');
+    this.updateContrastButton();
+  },
+
+  loadAccessibilitySettings: function() {
+    const enabled = localStorage.getItem('aa_high_contrast') === '1';
+    if (enabled) {
+      document.body.classList.add('high-contrast');
+    } else {
+      document.body.classList.remove('high-contrast');
+    }
+    this.updateContrastButton();
+  },
+
+  updateContrastButton: function() {
+    const btn = getId('contrast-btn');
+    if (!btn) return;
+
+    if (document.body.classList.contains('high-contrast')) {
+      btn.textContent = 'alto contraste: on';
+    } else {
+      btn.textContent = 'alto contraste: off';
     }
   },
 
@@ -239,5 +273,6 @@ document.addEventListener('DOMContentLoaded', function() {
   boardInit();
   window.addEventListener('resize', fxResize);
   buildTitleHexBackground();
+  Game.loadAccessibilitySettings();
   showScreen('screen-title');
 });

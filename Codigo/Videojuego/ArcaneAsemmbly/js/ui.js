@@ -613,3 +613,146 @@ function renderMap(nodes, onClickNode) {
   }
   return svg;
 }
+//modulo Coleccion: pantalla "MI COLECCION" que muestra todas las piezas
+//que el jugador ha descubierto a lo largo de TODAS sus runs (meta-progresion)
+const Coleccion = {
+  show: function() {
+    showScreen('screen-coleccion');
+    this.render();
+  },
+
+  render: function() {
+    const cont = getId('coleccion-content');
+    cont.innerHTML = '<div class="loading">Cargando...</div>';
+
+    //recargar coleccion desde el servidor para tener datos frescos
+    API.cargarColeccion().then(function(data) {
+      if (!data) {
+        cont.innerHTML = '<p style="color:var(--muted)">No se pudo cargar la coleccion. Inicia sesion primero.</p>';
+        return;
+      }
+      const r = data.resumen || {};
+      const piezas = data.piezas || [];
+
+      //barra de progreso
+      let html = '<div class="col-resumen">';
+      html += '<h3>' + (r.nombre || '') + '</h3>';
+      html += '<div class="col-bar-wrap"><div class="col-bar" style="width:' + (r.pct_completado || 0) + '%"></div></div>';
+      html += '<p>' + (r.piezas_descubiertas || 0) + ' / ' + (r.piezas_totales || 0) + ' piezas (' + (r.pct_completado || 0) + '%)</p>';
+      html += '</div>';
+
+      //grilla de piezas descubiertas
+      if (piezas.length === 0) {
+        html += '<p style="color:var(--muted);text-align:center;padding:2rem">Aun no has descubierto ninguna pieza. Juega runs para coleccionar piezas!</p>';
+      } else {
+        html += '<div class="col-grid">';
+        for (let i = 0; i < piezas.length; i++) {
+          const p = piezas[i];
+          const tipoClase = p.tipo || 'generator';
+          html += '<div class="col-piece ' + tipoClase + '">';
+          html += '<div class="cp-name">' + (p.nombre || p.pieza_id) + '</div>';
+          html += '<div class="cp-tipo">' + tipoClase.toUpperCase() + '</div>';
+          html += '<div class="cp-rareza">Rareza: ' + (p.rareza || 0) + '</div>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      cont.innerHTML = html;
+    });
+  },
+};
+
+//modulo AdminPanel: pantalla con estadisticas globales
+//solo accesible si API.isAdmin() devuelve true
+const AdminPanel = {
+  show: function() {
+    if (!API.isAdmin()) {
+      alert('Acceso restringido a administradores');
+      return;
+    }
+    showScreen('screen-admin');
+    this.render();
+  },
+
+  render: function() {
+    const cont = getId('admin-content');
+    cont.innerHTML = '<div class="loading">Cargando estadisticas...</div>';
+
+    API.cargarGlobalStats().then(function(data) {
+      if (!data) {
+        cont.innerHTML = '<p style="color:var(--pink)">Error al cargar estadisticas.</p>';
+        return;
+      }
+      const s = data.stats || {};
+      const top_jug = data.top_jugadores || [];
+      const top_pz  = data.top_piezas || [];
+      const por_zona = data.por_zona || [];
+      const cols    = data.colecciones || [];
+
+      let html = '';
+
+      //metricas globales
+      html += '<div class="admin-section"><h3>📊 METRICAS GLOBALES</h3><div class="admin-stats-grid">';
+      html += AdminPanel._stat('Jugadores', s.total_jugadores || 0);
+      html += AdminPanel._stat('Activos',   s.jugadores_activos || 0);
+      html += AdminPanel._stat('Runs',      s.total_runs || 0);
+      html += AdminPanel._stat('Victorias', s.total_victorias || 0);
+      html += AdminPanel._stat('Derrotas',  s.total_derrotas || 0);
+      html += AdminPanel._stat('Tasa Vic.',(s.tasa_victoria_pct || 0) + '%');
+      html += AdminPanel._stat('Combates',  s.combates_totales || 0);
+      html += AdminPanel._stat('Horas',     (s.horas_totales_jugadas || 0) + 'h');
+      html += '</div></div>';
+
+      //top 10 jugadores
+      html += '<div class="admin-section"><h3>🏆 TOP 10 JUGADORES</h3><table class="admin-table">';
+      html += '<thead><tr><th>#</th><th>Nombre</th><th>Runs</th><th>Victorias</th><th>Tasa</th></tr></thead><tbody>';
+      for (let i = 0; i < top_jug.length; i++) {
+        const j = top_jug[i];
+        html += '<tr><td>' + (i+1) + '</td><td>' + (j.nombre || '?') + '</td>';
+        html += '<td>' + (j.total_runs || 0) + '</td>';
+        html += '<td>' + (j.total_victorias || 0) + '</td>';
+        html += '<td>' + (j.tasa_victoria_pct || 0) + '%</td></tr>';
+      }
+      html += '</tbody></table></div>';
+
+      //top 10 piezas mas usadas
+      html += '<div class="admin-section"><h3>🧩 TOP 10 PIEZAS USADAS</h3><table class="admin-table">';
+      html += '<thead><tr><th>#</th><th>Pieza</th><th>Tipo</th><th>Veces usada</th></tr></thead><tbody>';
+      for (let i = 0; i < top_pz.length; i++) {
+        const p = top_pz[i];
+        html += '<tr><td>' + (i+1) + '</td><td>' + (p.nombre || '?') + '</td>';
+        html += '<td>' + (p.tipo || '?') + '</td><td>' + (p.veces_usada || 0) + '</td></tr>';
+      }
+      html += '</tbody></table></div>';
+
+      //distribucion por zona
+      html += '<div class="admin-section"><h3>🗺 RUNS POR ZONA</h3><table class="admin-table">';
+      html += '<thead><tr><th>Zona</th><th>Runs</th><th>Victorias</th><th>Tasa</th></tr></thead><tbody>';
+      for (let i = 0; i < por_zona.length; i++) {
+        const z = por_zona[i];
+        html += '<tr><td>' + (z.zona_actual || z.zona || '?') + '</td>';
+        html += '<td>' + (z.total_runs || 0) + '</td>';
+        html += '<td>' + (z.victorias || 0) + '</td>';
+        html += '<td>' + (z.tasa_victoria_pct || 0) + '%</td></tr>';
+      }
+      html += '</tbody></table></div>';
+
+      //top colecciones
+      html += '<div class="admin-section"><h3>📚 TOP COLECCIONES</h3><table class="admin-table">';
+      html += '<thead><tr><th>#</th><th>Jugador</th><th>Piezas</th><th>%</th></tr></thead><tbody>';
+      for (let i = 0; i < cols.length; i++) {
+        const c = cols[i];
+        html += '<tr><td>' + (i+1) + '</td><td>' + (c.nombre || '?') + '</td>';
+        html += '<td>' + (c.piezas_descubiertas || 0) + ' / ' + (c.piezas_totales || 0) + '</td>';
+        html += '<td>' + (c.pct_completado || 0) + '%</td></tr>';
+      }
+      html += '</tbody></table></div>';
+
+      cont.innerHTML = html;
+    });
+  },
+
+  _stat: function(label, value) {
+    return '<div class="admin-stat"><span class="as-val">' + value + '</span><span class="as-lbl">' + label + '</span></div>';
+  },
+};
