@@ -201,6 +201,29 @@
 
   </div>
 
+  <!--pantalla de armar el mazo antes del combate-->
+  <div id="screen-deck-builder" class="screen">
+    <div class="deck-wrap">
+      <div class="deck-header">
+        <span id="deck-node-badge" class="node-badge">COMBATE</span>
+        <h2 class="deck-title">⚔ ARMA TU MAZO</h2>
+        <p class="deck-sub">Selecciona <strong>5 piezas</strong> de tu inventario para este combate</p>
+      </div>
+
+      <div class="deck-counter">
+        <span id="deck-selected-count">0</span> / 5 piezas seleccionadas
+      </div>
+
+      <div id="deck-inventory" class="deck-inventory"></div>
+
+      <div class="deck-actions">
+        <button class="btn-ghost" onclick="DeckBuilder.autoFill()">🎲 Aleatorio</button>
+        <button class="btn-ghost" onclick="DeckBuilder.clearSelection()">✕ Limpiar</button>
+        <button id="deck-confirm-btn" class="btn-primary" onclick="DeckBuilder.confirm()" disabled>▶ COMBATIR</button>
+      </div>
+    </div>
+  </div>
+
   <!--pantalla de draft / recompensa-->
   <div id="screen-draft" class="screen">
     <div class="draft-wrap">
