@@ -47,82 +47,155 @@ Arcane Assembley
 
 ### **Summary**
 
-Arcane Assembly se basa en un juego estratégico donde el jugador construye un tablero hexagonal antes de cada battala, la ejecución del juego es automática y, conforme el jugador vaya armando su mazo los efectos serán diferentes. La habilidad del juagor no depende de sus reflejos, sino en el diseño.
+Arcane Assembly es un juego de estrategia en el que el jugador construye y optimiza un tablero hexagonal antes de cada batalla. Durante la fase de preparación, selecciona y posiciona piezas con distintas funciones y sinergias, formando una configuración única que determinará el desarrollo del combate. Una vez iniciada la batalla, la ejecución es automática, por lo que el resultado depende completamente de la planificación previa y de la calidad del diseño estratégico del jugador. Conforme avanza la partida, el jugador expande su mazo, desbloquea nuevas combinaciones y adapta su estrategia a enemigos y desafíos cada vez más complejos. La habilidad del jugador no se basa en reflejos ni rapidez, sino en la toma de decisiones, la optimización de recursos y la construcción inteligente de sinergias.
+![alt arcane_asembly](<arcane_asambley.png>)
+
 
 ### **Gameplay**
 
-La jugabilidad se centra en la planificación y la optimización del tablero, donde el jugador debera analizar posiciones y recursos antes del combate. El objetivo de Arcane Assembly es ir avanzando por el mapa hasta llegar a poder derrotar el jefe final, donde se superan obstaculos como lo podrian ser combinaciones ineficientes, limitaciones de piezas y enemigos con mecanicas unicas. Para poder llegar a ganar, el jugador debe experimentar con adapatar su estrategia en cada run y desieñar tableros que maximicen la interaccion entre piezas.
+La jugabilidad de Arcane Assembly se centra en la planificación estratégica y la optimización del tablero hexagonal, donde el jugador debe analizar cuidadosamente la posición de cada pieza, la gestión de recursos y las posibles sinergias antes de cada combate. El objetivo principal es avanzar a través del mapa superando diferentes nodos, enfrentamientos y eventos, hasta llegar al jefe final de la run.
+
+A lo largo de la partida, el jugador deberá enfrentarse a diversos obstáculos, como combinaciones ineficientes, recursos limitados, decisiones de riesgo y enemigos con mecánicas únicas que exigen adaptar constantemente la estrategia. Cada run presenta nuevas oportunidades para experimentar con distintas configuraciones, mejorar el mazo y descubrir sinergias más efectivas.
+
+Para alcanzar la victoria, no basta con reaccionar rápido, sino con diseñar tableros eficientes que maximicen la interacción entre piezas, optimicen el daño, la defensa y la generación de recursos, y permitan responder de forma inteligente a cada desafío.
+![alt gameplay](<gameplay.png>)
 
 ### **Mindset**
 
-Arcane Assembly es un juego para que los jugadores puedan experimentar una cierta mentalidad estrategica y análitica, que el juador se sienta ingenioso y creativo. La intención de Arcane Assembly es que el jugador se sienta tranquilo, pero a la vez curioso e intrigado al ver como su diseño se ejecuta. Estas emociones se provocaran mediante la construcción del tablero y la incertidumbre de cada run.
+Arcane Assembly está diseñado para que el jugador adopte una mentalidad estratégica y analítica, donde cada decisión requiere observación, planificación y capacidad de adaptación. El objetivo es que el jugador se sienta ingenioso, creativo y satisfecho al descubrir combinaciones eficientes y construir soluciones propias dentro de cada run.
 
+La experiencia busca transmitir una sensación de calma durante la fase de preparación, permitiendo que el jugador piense con libertad y sin presión de reflejos o tiempo limitado. Al mismo tiempo, se genera curiosidad e intriga al observar cómo el diseño del tablero cobra vida durante el combate automático, donde cada decisión previa demuestra su impacto.
+
+Estas emociones surgen de la construcción estratégica del tablero, la exploración de nuevas sinergias y la incertidumbre de cada partida, ya que cada run presenta desafíos distintos que obligan al jugador a aprender, experimentar y mejorar constantemente su enfoque.
 ## _Technical_
 
 ---
 
 ### **Screens**
 
-1. Title Screen
-    1. Menu principal
-    2. Iniciar Juego: Seleccion de nivel
-    3. Opciones
-    4. Salir del juego
-2. Level Select
-    1. Muestra los niveles o nodos disponibles
-    2. Cada nodo puede representar: combate, evento o tienda
-    3. Seleccionar un nodo
-    4. Regresar al menu principales
-3. Game
-    1. Gameplay: mover piezas
-    2. Inventario
-        1. Piezas
-    2. Assessment / Next Level
-        1.Resumen de recursos obtenidos o puntos de victoria
-        2. Opcion de continuar al siguiente nodo
-4. End Credits
+1. Menu
+    1. Menu principal ![alt menu principal](<menu-principal.png>)
+2.  Iniciar Run ![alt Mapa del pliegue](<iniciar_run.png>)
+    1. Combate ![alt Combate](<tablero.png>)
+        1. Tablero Jugador: Tablero del jugador registrado
+        2. Tablero Enemigo: Tablero Generado de enemigo
+        3. Ultimo Evento: Se registra el daño infligido, escudo, y datos del enemigo
+        4. Inventario: Aqui se muestra las piezas disponibles del jugador
+        5. Hp: La vida del jugador
+        6. Fractura: Muestra el nivel de fractura acumulado por el jugador
+        7. Impulso: Impulsos que obtenie el jugador
+        8. Pausa: Menu de pausa dentro de combate ![alt Pausa](<pausa.png>)
+            1. Renaudar: Continua el combate, si el combate esta en ejecuccion no se pausa.
+            2. Regresa al mapa: Regresa a mapa de pliegue
+            3. Opciones
+                1. Volumrn del Juego: Aqui se controla el volumen del juego
+                2. Volumen SFX: Aqui se controla volumen de SFX
+                3. Tutroial: Aqui se onserva el tutorial del juego ![alt Tutorial](<tutorial.png>)
+                4. Volver: Vuleve a 7. Pausa
+            4. Guardar Partida: Guarda la partida.
+            5. Salir al menu: Se regresa hasta 1. Menu.
+    2. Elite ![alt Elite](<elite.png>)
+        1. Tablero Jugador: Tablero del jugador registrado
+        2. Tablero Enemigo: Tablero Generado de enemigo
+        3. Ultimo Evento: Se registra el daño infligido, escudo, y datos del enemigo
+        4. Inventario: Aqui se muestra las piezas disponibles del jugador
+        5. Hp: La vida del jugador
+        6. Fractura: Muestra el nivel de fractura acumulado por el jugador
+        7. Impulso: Impulsos que obtenie el jugador
+        8. Pausa: Menu de pausa dentro de combate ![alt Pausa](<pausa.png>)
+            1. Renaudar: Continua el combate, si el combate esta en ejecuccion no se pausa.
+            2. Regresa al mapa: Regresa a mapa de pliegue
+            3. Opciones
+                1. Volumrn del Juego: Aqui se controla el volumen del juego
+                2. Volumen SFX: Aqui se controla volumen de SFX
+                3. Tutroial: Aqui se onserva el tutorial del juego ![alt Tutorial](<tutorial.png>)
+                4. Volver: Vuleve a 7. Pausa
+            4. Guardar Partida: Guarda la partida.
+            5. Salir al menu: Se regresa hasta 1. Menu.
+    3. Boss ![alt Boss](<boss.png>)
+        1. Tablero Jugador: Tablero del jugador registrado
+        2. Tablero Enemigo: Tablero Generado de enemigo
+        3. Ultimo Evento: Se registra el daño infligido, escudo, y datos del enemigo
+        4. Inventario: Aqui se muestra las piezas disponibles del jugador
+        5. Hp: La vida del jugador
+        6. Fractura: Muestra el nivel de fractura acumulado por el jugador
+        7. Impulso: Impulsos que obtenie el jugador
+        8. Pausa: Menu de pausa dentro de combate ![alt Pausa](<pausa.png>)
+            1. Renaudar: Continua el combate, si el combate esta en ejecuccion no se pausa.
+            2. Regresa al mapa: Regresa a mapa de pliegue
+            3. Opciones
+                1. Volumrn del Juego: Aqui se controla el volumen del juego
+                2. Volumen SFX: Aqui se controla volumen de SFX
+                3. Tutroial: Aqui se onserva el tutorial del juego ![alt Tutorial](<tutorial.png>)
+                4. Volver: Vuleve a 7. Pausa
+            4. Guardar Partida: Guarda la partida.
+            5. Salir al menu: Se regresa hasta 1. Menu.
+    4. Evento ![alt Boss](<boss.png>)
+        1. Selecciona una Recompensa ![alt Recompensa](<recompensa.png>)
+    5. Tienda ![alt Tienda](<tienda.png>)
+3. Entrar ![alt Entrarl](<Entrar.png>)
+    1. Login: Si ya tienen cuenta ![alt Login](<login.png>)
+    2. Registrarse: Si es un jugador nuevo ![alt Registrarse](<registrarse.png>)
+4. Reglas
+    1. Reglas del juego ![alt Reglas](<reglas.png>)
+5. Opciones ![alt Opciones](<opciones.png>)
+    1. Volumrn del Juego: Aqui se controla el volumen del juego
+    2. Volumen SFX: Aqui se controla volumen de SFX
+    3. Tutroial: Aqui se onserva el tutorial del juego ![alt Tutorial](<tutorial.png>)
+    4. Volver: Vuleve a 1. Menu
+6. Creditos ![alt Creditos](<creditos.png>)
+    1. Creditos: Muestra Creditos
+    2. Volver: Vuelve a 1. Menu
 
-
-_(example)_
-Menu:![alt ancla](<screen.png>)
 
 ### **Controls**
 
-El jugador interactúa exclusivamente con el mouse/trackpad. No se requieren controles de teclado ni reflejos rápidos, ya que el juego se basa en planificación. Los controles son:
+La interacción en Arcane Assembly está centrada completamente en el uso de mouse o trackpad, ya que el juego prioriza la estrategia, la observación y la toma de decisiones sobre la velocidad de reacción. Durante cada run, el jugador construye su tablero, selecciona rutas en el mapa y administra recursos utilizando controles simples pero precisos.
 
-1. Click izquierdo
+1. Click en el mousepad
+    1. Seleccionar una pieza del inventario durante la fase de construcción.
+    2. Colocar una pieza en una casilla vacía del tablero hexagonal.
+    3. Seleccionar nodos accesibles dentro del mapa de progresión.
+    4. Elegir recompensas después de un combate.
+    5. Tomar decisiones en eventos especiales.
+    6. Interactuar con botones de interfaz
+        1. Impulso
+        2. Limpiar tablero
+        3. Guardar Run
+        4. Reanudar
+        5. Opciones
+        6. Nueva Run
+2. Movimiento del cursor (Hover)
+    1. Muestrar una previsualización de la casilla donde se colocará la pieza seleccionada.
+    2. Resaltar visualmente la celda hexagonal bajo el cursor.
+    3. Mostrar tooltips con información detallada de cada pieza.
+        1. Nombre
+        2. Tipo
+        3. Descripción
+        4. Generación de daño
+        5. Escudo
+        6. Regeneración
+        7. Reflejo
+        8. Multiplicadores o amplificaciones
+3. Limpiar tablero
+    1. Permite reiniciar por completo la fase de construcción actual.
+4. Impulso
+    1. Gastar una carga de impulso disponible
+    2. Obtener una pieza adicional para esa ronda de construcción
+5. Selección de nodo en el mapa
+    1. Elegir entre diferentes rutas disponibles
+    2. Acceder a combates normales
+    3. Entrar a eventos especiales
+    4. Visitar tiendas
+    5. Enfrentar élites
+    6. Avanzar hacia el jefe de zona
+6. Resolución automática del combate
+    1. Resolver el tablero del jugador
+    2. Calcular daño total, escudos y efectos especiales
+    3. Ejecutar el turno del enemigo
+    4. Mostrar el resultado en el registro de combate
+    5. Determinar si continúa la run o si termina el encuentro
 
-    1. Seleccionar una pieza del inventario
-    2. Confirmar la colocación de una pieza en el tablero
-    3. Seleccionar un nodo en el mapa
-
-2. Click derecho
-
-    1. Deseleccionar una pieza activa
-    2. Remover una pieza ya colocada en el tablero
-
-3. Hover (pasar el cursor)
-
-    1. Resaltar casillas válidas donde se puede colocar la pieza seleccionada
-    2. Mostrar información de una pieza o nodo
-
-4. Drag & Drop
-
-    1. Arrastrar una pieza del inventario a una casilla del tablero
-    2. Reorganizar piezas ya colocadas antes de confirmar
-
-5. Botón "Confirmar tablero"
-
-    1. Bloquea el tablero e inicia la resolución automática del combate
-
-6. Botón "Impulso"
-
-    1. Activa una pieza fuera del orden de resolución (una vez por combate)
-
-_example_
-Control: Click izquierdo sobre casilla hexagonal
-Evento: Colocar pieza seleccionada en esa posición
-Feedback visual: La casilla se ilumina con el color de la pieza y aparece la conexión con vecinos adyacentes
 
 ### **Mechanics**
 
